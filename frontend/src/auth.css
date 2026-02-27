@@ -1,0 +1,547 @@
+/* ===== LOGIN PAGE & DARK MODE ===== */
+
+/* Dark mode CSS variables */
+:root {
+    --bg: #f4f6f9;
+    --surface: #ffffff;
+    --surface2: #f8fafc;
+    --border-col: #e2e8f0;
+    --text-col: #1e293b;
+    --text-muted: #64748b;
+}
+
+[data-theme="dark"] {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface2: #263348;
+    --border-col: #334155;
+    --text-col: #f1f5f9;
+    --text-muted: #94a3b8;
+}
+
+[data-theme="dark"] body {
+    background: var(--bg) !important;
+    color: var(--text-col);
+}
+
+[data-theme="dark"] .form-card,
+[data-theme="dark"] .table-card,
+[data-theme="dark"] .dashboard-card,
+[data-theme="dark"] .profile-card-wrapper,
+[data-theme="dark"] .security-wrapper,
+[data-theme="dark"] .sec-card,
+[data-theme="dark"] .nav-dropdown,
+[data-theme="dark"] .import-box {
+    background: var(--surface) !important;
+    color: var(--text-col) !important;
+    border-color: var(--border-col) !important;
+}
+
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+    background: var(--surface2) !important;
+    color: var(--text-col) !important;
+    border-color: var(--border-col) !important;
+}
+
+[data-theme="dark"] th {
+    background: var(--surface2) !important;
+    color: var(--text-muted) !important;
+}
+
+[data-theme="dark"] tr:hover {
+    background: var(--surface2) !important;
+}
+
+[data-theme="dark"] td,
+[data-theme="dark"] th {
+    border-color: var(--border-col) !important;
+}
+
+[data-theme="dark"] .btn-secondary {
+    background: var(--surface2) !important;
+    color: var(--text-col) !important;
+    border: 1px solid var(--border-col) !important;
+}
+
+[data-theme="dark"] .search-input,
+[data-theme="dark"] .filter-select {
+    background: var(--surface2) !important;
+    color: var(--text-col) !important;
+    border-color: var(--border-col) !important;
+}
+
+[data-theme="dark"] label {
+    color: var(--text-muted) !important;
+}
+
+[data-theme="dark"] .nav-dropdown-item {
+    color: var(--text-col);
+}
+
+[data-theme="dark"] .nav-dropdown-item:hover {
+    background: var(--surface2);
+}
+
+[data-theme="dark"] .nav-dropdown-divider {
+    background: var(--border-col);
+}
+
+[data-theme="dark"] .dashboard-card .dash-count {
+    color: var(--text-col) !important;
+}
+
+[data-theme="dark"] .form-section {
+    border-color: var(--border-col) !important;
+}
+
+[data-theme="dark"] .form-card h2 {
+    color: var(--text-col) !important;
+}
+
+/* ===================================
+   LOGIN PAGE — Full-screen centered
+   =================================== */
+.login-page {
+    position: fixed;
+    inset: 0;
+    overflow-y: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%);
+    padding: 20px;
+    z-index: 9000;
+}
+
+/* Theme toggle button stays in corner */
+.theme-toggle {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 9999;
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 20px;
+    padding: 7px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    transition: background 0.2s;
+    letter-spacing: 0.3px;
+}
+
+.theme-toggle:hover {
+    background: rgba(255, 255, 255, 0.28);
+}
+
+/* The white card */
+.login-card {
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
+    width: 100%;
+    max-width: 420px;
+    padding: 44px 40px 40px;
+    animation: login-slide-up 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-theme="dark"] .login-card {
+    background: #1e293b;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.65);
+}
+
+@keyframes login-slide-up {
+    from {
+        opacity: 0;
+        transform: translateY(24px) scale(0.97);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Logo area */
+.login-logo {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.login-logo-icon {
+    font-size: 2.8rem;
+    display: block;
+    margin-bottom: 10px;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
+}
+
+.login-logo h1 {
+    margin: 0 0 4px;
+    font-size: 1.65rem;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.5px;
+}
+
+[data-theme="dark"] .login-logo h1 {
+    color: #f1f5f9;
+}
+
+.login-logo p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+/* Form layout */
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.login-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.login-field>label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    letter-spacing: 0.1px;
+}
+
+[data-theme="dark"] .login-field>label {
+    color: #94a3b8;
+}
+
+.login-field input,
+.login-field textarea {
+    width: 100%;
+    padding: 11px 14px;
+    border-radius: 9px;
+    border: 1.5px solid #e5e7eb;
+    font-size: 14px;
+    background: #fafafa;
+    color: #111827;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    box-sizing: border-box;
+    font-family: inherit;
+}
+
+[data-theme="dark"] .login-field input,
+[data-theme="dark"] .login-field textarea {
+    background: #263348;
+    border-color: #334155;
+    color: #f1f5f9;
+}
+
+.login-field input:focus,
+.login-field textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+    background: #fff;
+}
+
+[data-theme="dark"] .login-field input:focus,
+[data-theme="dark"] .login-field textarea:focus {
+    background: #2d3f58;
+}
+
+/* Password field with show/hide */
+.password-wrapper {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+}
+
+.password-wrapper input {
+    flex: 1;
+    padding-right: 44px;
+}
+
+.show-password-btn {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 42px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    color: #9ca3af;
+    padding: 0;
+    border-radius: 0 9px 9px 0;
+    transition: color 0.15s;
+}
+
+.show-password-btn:hover {
+    color: #3b82f6;
+}
+
+/* Forgot password link */
+.login-forgot-link {
+    text-align: right;
+    margin-top: -8px;
+}
+
+.link-btn {
+    background: none;
+    border: none;
+    color: #3b82f6;
+    font-size: 12.5px;
+    padding: 0;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 500;
+}
+
+.link-btn:hover {
+    text-decoration: underline;
+    color: #1d4ed8;
+}
+
+/* Action buttons */
+.login-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 4px;
+}
+
+.btn-login {
+    width: 100%;
+    padding: 13px;
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    border-radius: 9px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.2px;
+    transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+    font-family: inherit;
+}
+
+.btn-login:hover:not(:disabled) {
+    background: #1d4ed8;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+}
+
+.btn-login:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.btn-login:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.btn-register {
+    width: 100%;
+    padding: 11px;
+    background: transparent;
+    color: #6b7280;
+    border: 1.5px solid #d1d5db;
+    border-radius: 9px;
+    font-size: 13.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+}
+
+.btn-register:hover {
+    border-color: #9ca3af;
+    color: #374151;
+    background: #f9fafb;
+}
+
+[data-theme="dark"] .btn-register {
+    border-color: #334155;
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .btn-register:hover {
+    background: #263348;
+    color: #f1f5f9;
+}
+
+/* Error banner */
+.login-error {
+    background: #fff1f1;
+    border: 1px solid #fca5a5;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #dc2626;
+}
+
+[data-theme="dark"] .login-error {
+    background: rgba(220, 38, 38, 0.12);
+    border-color: rgba(220, 38, 38, 0.35);
+    color: #fca5a5;
+}
+
+/* Forgot password heading */
+.login-form h2 {
+    margin: 0 0 4px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+[data-theme="dark"] .login-form h2 {
+    color: #f1f5f9;
+}
+
+/* ===================================
+   REGISTER PAGE — Match Login style
+   =================================== */
+.register-page {
+    position: fixed;
+    inset: 0;
+    overflow-y: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%);
+    padding: 24px 20px;
+    z-index: 9000;
+}
+
+.register-card {
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
+    width: 100%;
+    max-width: 520px;
+    padding: 44px 40px 40px;
+    animation: login-slide-up 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-theme="dark"] .register-card {
+    background: #1e293b;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.65);
+}
+
+.register-logo {
+    text-align: center;
+    margin-bottom: 28px;
+}
+
+.register-logo h1 {
+    margin: 0 0 4px;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.5px;
+}
+
+[data-theme="dark"] .register-logo h1 {
+    color: #f1f5f9;
+}
+
+.register-logo p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+.register-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.register-form .reg-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.register-form .reg-field label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+}
+
+[data-theme="dark"] .register-form .reg-field label {
+    color: #94a3b8;
+}
+
+.register-form .reg-field input,
+.register-form .reg-field select {
+    width: 100%;
+    padding: 11px 14px;
+    border-radius: 9px;
+    border: 1.5px solid #e5e7eb;
+    font-size: 14px;
+    background: #fafafa;
+    color: #111827;
+    box-sizing: border-box;
+    font-family: inherit;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+[data-theme="dark"] .register-form .reg-field input,
+[data-theme="dark"] .register-form .reg-field select {
+    background: #263348;
+    border-color: #334155;
+    color: #f1f5f9;
+}
+
+.register-form .reg-field input:focus,
+.register-form .reg-field select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+}
+
+/* Two-column grid for paired fields */
+.reg-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.reg-error {
+    background: #fff1f1;
+    border: 1px solid #fca5a5;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #dc2626;
+}
+
+[data-theme="dark"] .reg-error {
+    background: rgba(220, 38, 38, 0.12);
+    border-color: rgba(220, 38, 38, 0.35);
+    color: #fca5a5;
+}
+
+.reg-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 6px;
+}
+
+.field-hint {
+    font-size: 11px;
+    color: #94a3b8;
+    margin-top: 2px;
+}

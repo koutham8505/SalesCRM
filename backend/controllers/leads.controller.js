@@ -1,0 +1,329 @@
+// D:\SalesCRM\backend\controllers\leads.controller.js
+const supabase = require("../config/supabase");
+const logAudit = require("../middleware/auditLog");
+
+// --- Helpers ---
+
+// Convert empty strings to null so optional columns don't fail NOT NULL constraints
+const nullifyEmpty = (obj) => {
+  const out = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (v === "" || v === undefined) out[k] = null;
+    else out[k] = v;
+  }
+  return out;
+};
+
+const cleanForDb = (body) => {
+  const { follow_up_status, meeting_today, id, created_at, ...rest } = body;
+  return nullifyEmpty(rest);
+};
+
+const hasFeature = (user, feature) => {
+  const rolePerms = {
+    Admin: ["import", "bulk_update", "delete", "team_filters", "sensitive_fields"],
+    Manager: ["import", "bulk_update", "delete", "team_filters", "sensitive_fields"],
+    TeamLead: ["import", "bulk_update"],
+    Executive: [],
+  };
+  if ((rolePerms[user.role] || []).includes(feature)) return true;
+  return user.feature_flags?.[feature] === true;
+};
+
+const applyRoleFilters = (query, user) => {
+  if (user.role === "Admin") return query;
+  if (user.role === "Manager" || user.role === "TeamLead") {
+    if (user.team) return query.eq("team", user.team);
+    return query.eq("owner_id", user.id);
+  }
+  return query.eq("owner_id", user.id);
+};
+
+const computeScore = (lead) => {
+  let score = 0;
+  const statusScores = { Won: 100, "In Progress": 60, New: 30, "On Hold": 20, Loss: 0 };
+  score += statusScores[lead.status] || 10;
+
+  const sourceScores = { Referral: 25, "Walk-in": 20, LinkedIn: 15, "Cold Call": 10, Website: 15, "Email Campaign": 12, Other: 5 };
+  score += sourceScores[lead.lead_source] || 5;
+
+  if (lead.meeting_date) {
+    const daysToMeeting = Math.ceil((new Date(lead.meeting_date) - new Date()) / 86400000);
+    if (daysToMeeting >= 0 && daysToMeeting <= 7) score += 20;
+    else if (daysToMeeting < 0 && daysToMeeting > -3) score += 10;
+  }
+  if (lead.next_follow_up) {
+    const daysToFu = Math.ceil((new Date(lead.next_follow_up) - new Date()) / 86400000);
+    if (daysToFu >= 0 && daysToFu <= 3) score += 15;
+  }
+  if (lead.call_status === "Interested") score += 15;
+  if (lead.call_status === "Callback Requested") score += 10;
+
+  return Math.min(score, 100);
+};
+
+const stripSensitive = (lead, user) => {
+  if (hasFeature(user, "sensitive_fields")) return lead;
+  const { deal_value, margin, ...safe } = lead;
+  return safe;
+};
+
+const checkDuplicates = async (email, phone, excludeId) => {
+  const dupes = [];
+  if (email) {
+    let q = supabase.from("my_leads").select("id,lead_name,email,phone").eq("email", email);
+    if (excludeId) q = q.neq("id", excludeId);
+    const { data } = await q;
+    if (data?.length) dupes.push(...data);
+  }
+  if (phone) {
+    let q = supabase.from("my_leads").select("id,lead_name,email,phone").eq("phone", phone);
+    if (excludeId) q = q.neq("id", excludeId);
+    const { data } = await q;
+    if (data?.length) {
+      data.forEach((d) => { if (!dupes.find((x) => x.id === d.id)) dupes.push(d); });
+    }
+  }
+  return dupes;
+};
+
+const validateLead = async (lead) => {
+  const errors = [];
+  try {
+    const { data: rules } = await supabase.from("validation_rules").select("*");
+    if (rules) {
+      for (const rule of rules) {
+        const val = lead[rule.field_name];
+        if (rule.required && (!val || !String(val).trim())) {
+          errors.push(rule.message || `${rule.field_name} is required`);
+        }
+        if (rule.regex && val && !new RegExp(rule.regex).test(val)) {
+          errors.push(rule.message || `${rule.field_name} is invalid`);
+        }
+      }
+    }
+  } catch { /* validation table may not exist yet */ }
+  return errors;
+};
+
+// --- Endpoints ---
+
+exports.getMe = async (req, res) => {
+  res.json({
+    id: req.user.id, email: req.user.email, full_name: req.user.full_name,
+    role: req.user.role, team: req.user.team, feature_flags: req.user.feature_flags || {},
+  });
+};
+
+exports.getLeads = async (req, res) => {
+  try {
+    let query = supabase.from("my_leads").select("*").order("created_at", { ascending: false });
+    query = applyRoleFilters(query, req.user);
+    const { data, error } = await query;
+    if (error) throw error;
+
+    const leads = (data || []).map((l) => stripSensitive(l, req.user));
+
+    res.json({
+      leads,
+      profile: {
+        id: req.user.id, email: req.user.email, full_name: req.user.full_name,
+        role: req.user.role, team: req.user.team, feature_flags: req.user.feature_flags || {},
+      },
+    });
+  } catch (err) {
+    console.error("getLeads error:", err);
+    res.status(500).json({ message: err.message || "Error fetching leads" });
+  }
+};
+
+exports.createLead = async (req, res) => {
+  try {
+    const user = req.user;
+    const cleaned = cleanForDb(req.body);
+
+    // Validation
+    const vErrors = await validateLead(cleaned);
+    if (vErrors.length) return res.status(400).json({ message: vErrors.join("; "), validationErrors: vErrors });
+
+    // Duplicate detection
+    const dupes = await checkDuplicates(cleaned.email, cleaned.phone);
+    const hasDuplicates = dupes.length > 0;
+
+    // Strip sensitive for non-authorized
+    if (!hasFeature(user, "sensitive_fields")) {
+      delete cleaned.deal_value;
+      delete cleaned.margin;
+    }
+
+    // Auto-fill owner
+    const payload = {
+      ...cleaned,
+      owner_id: cleaned.owner_id || user.id,
+      owner_name: cleaned.owner_name || user.full_name || user.email,
+      owner_email: cleaned.owner_email || user.email,
+      team: cleaned.team || user.team,
+    };
+    // Auto-stamp last_called_at whenever call_status is set
+    if (payload.call_status && payload.call_status !== "Not Called" && payload.call_status !== "") {
+      payload.last_called_at = new Date().toISOString();
+    }
+    payload.score = computeScore(payload);
+
+    const { data, error } = await supabase.from("my_leads").insert([payload]).select();
+    if (error) throw error;
+
+    logAudit(user.id, user.email, "LEAD_CREATE", data[0]?.id, "my_leads", { lead_name: payload.lead_name });
+
+    res.status(201).json({
+      ...stripSensitive(data[0], user),
+      duplicates: hasDuplicates ? dupes : undefined,
+    });
+  } catch (err) {
+    console.error("createLead error:", err?.message, err?.code, err?.details);
+    res.status(500).json({ message: err?.message || "Save failed", code: err?.code, details: err?.details });
+  }
+};
+
+exports.updateLead = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = req.user;
+
+    const { data: existing, error: fetchError } = await supabase.from("my_leads").select("*").eq("id", id).single();
+    if (fetchError || !existing) return res.status(404).json({ message: "Lead not found" });
+
+    const canEdit = user.role === "Admin" || user.role === "Manager" ||
+      (user.role === "TeamLead" && existing.team === user.team) ||
+      (user.role === "Executive" && existing.owner_id === user.id);
+    if (!canEdit) return res.status(403).json({ message: "Not allowed to edit this lead" });
+
+    let cleaned = cleanForDb(req.body);
+
+    // Validation
+    const merged = { ...existing, ...cleaned };
+    const vErrors = await validateLead(merged);
+    if (vErrors.length) return res.status(400).json({ message: vErrors.join("; "), validationErrors: vErrors });
+
+    // Duplicate detection
+    const dupes = await checkDuplicates(cleaned.email || existing.email, cleaned.phone || existing.phone, id);
+
+    // Strip owner for Executive/TeamLead
+    if (user.role === "Executive" || user.role === "TeamLead") {
+      delete cleaned.owner_id; delete cleaned.owner_name; delete cleaned.owner_email;
+    }
+    // Strip sensitive for non-authorized
+    if (!hasFeature(user, "sensitive_fields")) {
+      delete cleaned.deal_value; delete cleaned.margin;
+    }
+
+    // Auto-stamp last_called_at whenever call_status is being set or changed
+    const newStatus = cleaned.call_status;
+    const prevStatus = existing.call_status;
+    if (newStatus && newStatus !== "Not Called" && newStatus !== "") {
+      cleaned.last_called_at = new Date().toISOString();
+    }
+
+    // Recompute score
+    cleaned.score = computeScore({ ...existing, ...cleaned });
+
+    const { data, error } = await supabase.from("my_leads").update(cleaned).eq("id", id).select();
+    if (error) throw error;
+
+    // Auto-log a CALL activity when call_status is set/changed
+    // This ensures "Calls Today" in the dashboard is always accurate
+    if (newStatus && newStatus !== "Not Called" && newStatus !== "" && newStatus !== prevStatus) {
+      await supabase.from("lead_activities").insert([{
+        lead_id: id,
+        user_id: user.id,
+        type: "CALL",
+        description: `Call status updated to: ${newStatus}`,
+        outcome: newStatus,
+      }]).select();
+    }
+
+    logAudit(user.id, user.email, "LEAD_UPDATE", id, "my_leads", { changes: Object.keys(cleaned) });
+
+    res.json({
+      ...stripSensitive(data[0], user),
+      duplicates: dupes.length ? dupes : undefined,
+    });
+  } catch (err) {
+    console.error("updateLead error:", err);
+    res.status(500).json({ message: "Update failed" });
+  }
+};
+
+exports.deleteLead = async (req, res) => {
+  try {
+    if (!hasFeature(req.user, "delete")) return res.status(403).json({ message: "Not allowed to delete leads" });
+    const { error } = await supabase.from("my_leads").delete().eq("id", req.params.id);
+    if (error) throw error;
+    logAudit(req.user.id, req.user.email, "LEAD_DELETE", req.params.id, "my_leads", null);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ message: "Delete failed" });
+  }
+};
+
+exports.importLeads = async (req, res) => {
+  try {
+    if (!hasFeature(req.user, "import")) return res.status(403).json({ message: "Not allowed to import" });
+    const user = req.user;
+    const cleaned = (req.body || []).map((l) => {
+      const base = cleanForDb(l);
+      const payload = {
+        ...base,
+        owner_id: base.owner_id || user.id,
+        owner_name: base.owner_name || user.full_name,
+        owner_email: base.owner_email || user.email,
+        team: base.team || user.team,
+      };
+      payload.score = computeScore(payload);
+      return payload;
+    });
+    if (!cleaned.length) return res.status(400).json({ message: "No data to import" });
+    const { error } = await supabase.from("my_leads").insert(cleaned);
+    if (error) throw error;
+    logAudit(user.id, user.email, "LEAD_IMPORT", null, "my_leads", { count: cleaned.length });
+    res.status(201).json({ message: `Imported ${cleaned.length} leads` });
+  } catch (err) {
+    res.status(500).json({ message: "Import failed" });
+  }
+};
+
+exports.bulkUpdateLeads = async (req, res) => {
+  try {
+    if (!hasFeature(req.user, "bulk_update")) return res.status(403).json({ message: "Not allowed" });
+    const { ids, updates } = req.body || {};
+    if (!Array.isArray(ids) || !ids.length || !updates) return res.status(400).json({ message: "ids[] and updates required" });
+    const { error } = await supabase.from("my_leads").update(cleanForDb(updates)).in("id", ids);
+    if (error) throw error;
+    logAudit(req.user.id, req.user.email, "LEAD_BULK_UPDATE", null, "my_leads", { ids, changes: Object.keys(updates) });
+    res.json({ success: true, updatedCount: ids.length });
+  } catch (err) {
+    res.status(500).json({ message: "Bulk update failed" });
+  }
+};
+
+exports.getOwners = async (req, res) => {
+  try {
+    if (!hasFeature(req.user, "team_filters")) return res.status(403).json({ message: "Not allowed" });
+    const { data, error } = await supabase.from("profiles").select("id, full_name, role, team").order("full_name");
+    if (error) throw error;
+    res.json(data || []);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to load owners" });
+  }
+};
+
+// GET /api/leads/validation-rules
+exports.getValidationRules = async (req, res) => {
+  try {
+    const { data, error } = await supabase.from("validation_rules").select("*");
+    if (error) throw error;
+    res.json(data || []);
+  } catch (err) {
+    res.json([]);
+  }
+};
