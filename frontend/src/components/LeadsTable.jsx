@@ -260,12 +260,11 @@ export default function LeadsTable({
                                             <button onClick={() => onView?.(lead)} className="btn-sm" title="View details">👁</button>
                                             <button onClick={() => onEdit(lead)} className="btn-sm">Edit</button>
                                             {lead.email && (
-                                                <a
-                                                    href={`mailto:${lead.email}`}
+                                                <button
                                                     className="btn-sm btn-icon"
                                                     title={`Email ${lead.email}`}
-                                                    onClick={(e) => e.stopPropagation()}
-                                                >✉️</a>
+                                                    onClick={(e) => { e.stopPropagation(); window.open(`mailto:${lead.email}`, "_self"); }}
+                                                >✉️</button>
                                             )}
                                             {(lead.whatsapp || lead.phone) && (
                                                 <a
