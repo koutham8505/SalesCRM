@@ -15,6 +15,9 @@ import TargetsPanel from "./components/TargetsPanel";
 import ProfilePage from "./components/ProfilePage";
 import AdminPanel from "./components/AdminPanel";
 import Toast from "./components/Toast";
+import ConversionFunnel from "./components/ConversionFunnel";
+import SourcePerformance from "./components/SourcePerformance";
+import TeamProductivity from "./components/TeamProductivity";
 import "./App.css";
 
 const BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
@@ -30,6 +33,7 @@ const hasFeature = (profile, feature) => {
 export default function App({ session, onLogout }) {
   const [view, setView] = useState("leads");
   const [leads, setLeads] = useState([]);
+  const [tasks, setTasks] = useState([]);
   const [profile, setProfile] = useState(null);
   const [owners, setOwners] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -88,6 +92,15 @@ export default function App({ session, onLogout }) {
 
   useEffect(() => { fetchLeads(); }, [fetchLeads]);
   useEffect(() => { fetchOwners(); }, [fetchOwners]);
+
+  // Fetch tasks for My Day view
+  const fetchTasks = useCallback(async () => {
+    try {
+      const r = await fetch(`${BASE}/api/tasks`, { headers: auth });
+      if (r.ok) setTasks(await r.json());
+    } catch { }
+  }, [session]);
+  useEffect(() => { fetchTasks(); }, [fetchTasks]);
 
   const teams = [...new Set(leads.map((l) => l.team).filter(Boolean))].sort();
 
@@ -168,7 +181,7 @@ export default function App({ session, onLogout }) {
       case "admin":
         return role === "Admin" ? <AdminPanel session={session} showToast={notify} /> : null;
       case "today":
-        return <TodayView leads={leads} role={role} onViewLead={(l) => setViewLead(l)} />;
+        return <TodayView leads={leads} tasks={tasks} role={role} token={session?.access_token} onViewLead={(l) => setViewLead(l)} onTaskUpdate={fetchTasks} />;
       case "tasks":
         return <TasksPanel session={session} showToast={notify} />;
       case "targets":
@@ -176,7 +189,16 @@ export default function App({ session, onLogout }) {
       case "reports":
         return <ReportsPage leads={leads} role={role} profile={profile} />;
       case "dashboard":
-        return <DashboardCards leads={leads} role={role} session={session} onLogout={onLogout} />;
+        return (
+          <>
+            <DashboardCards leads={leads} role={role} session={session} onLogout={onLogout} />
+            <div className="phase2-analytics">
+              <ConversionFunnel token={session?.access_token} />
+              <SourcePerformance token={session?.access_token} />
+              <TeamProductivity token={session?.access_token} role={role} />
+            </div>
+          </>
+        );
       case "leads":
       default:
         return (

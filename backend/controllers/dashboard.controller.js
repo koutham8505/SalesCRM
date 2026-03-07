@@ -209,3 +209,166 @@ exports.getMetrics = async (req, res) => {
         res.status(500).json({ message: "Failed to load dashboard metrics" });
     }
 };
+
+// ─────────────────────────────────────────────────────────────
+// Phase 2.1 — GET /api/dashboard/funnel
+// Stage conversion pipeline: count per stage + % conversion
+// ─────────────────────────────────────────────────────────────
+const STAGE_ORDER = ["New", "Contacted", "Demo/Meeting", "Proposal", "Negotiation", "Won", "Lost"];
+
+exports.getFunnel = async (req, res) => {
+    try {
+        let query = supabase.from("my_leads").select("id, stage, owner_id, owner_name, team");
+        query = applyRoleFilters(query, req.user);
+        const { data, error } = await query;
+        if (error) throw error;
+        const rows = data || [];
+
+        // Count per stage
+        const stageCounts = {};
+        STAGE_ORDER.forEach((s) => { stageCounts[s] = 0; });
+        rows.forEach((r) => {
+            const s = r.stage || "New";
+            if (stageCounts[s] !== undefined) stageCounts[s]++;
+            else stageCounts[s] = 1;
+        });
+
+        // Conversion % between consecutive stages (excluding Lost)
+        const pipelineStages = STAGE_ORDER.filter((s) => s !== "Lost");
+        const conversions = pipelineStages.map((stage, i) => {
+            const count = stageCounts[stage] || 0;
+            const prevCount = i === 0 ? rows.length : (stageCounts[pipelineStages[i - 1]] || 0);
+            const rate = prevCount > 0 ? Math.round((count / prevCount) * 100) : 0;
+            return { stage, count, conversion_rate: rate };
+        });
+
+        // Per-owner breakdown (top 5 by total leads)
+        const ownerMap = {};
+        rows.forEach((r) => {
+            const key = r.owner_name || r.owner_id || "Unknown";
+            if (!ownerMap[key]) ownerMap[key] = { owner: key, total: 0, won: 0, lost: 0 };
+            ownerMap[key].total++;
+            if (r.stage === "Won") ownerMap[key].won++;
+            if (r.stage === "Lost") ownerMap[key].lost++;
+        });
+        const ownerBreakdown = Object.values(ownerMap)
+            .sort((a, b) => b.total - a.total)
+            .slice(0, 8)
+            .map((o) => ({ ...o, win_rate: o.total > 0 ? Math.round((o.won / o.total) * 100) : 0 }));
+
+        res.json({ stage_counts: stageCounts, conversions, owner_breakdown: ownerBreakdown, total: rows.length });
+    } catch (err) {
+        console.error("getFunnel error:", err.message);
+        res.status(500).json({ message: "Failed to load funnel" });
+    }
+};
+
+// ─────────────────────────────────────────────────────────────
+// Phase 2.2 — GET /api/dashboard/team-productivity
+// Per-user: calls today, meetings today, new leads, wins this month
+// ─────────────────────────────────────────────────────────────
+exports.getTeamProductivity = async (req, res) => {
+    try {
+        // Only Manager/Admin/TeamLead can see team view
+        if (req.user.role === "Executive") {
+            return res.status(403).json({ message: "Not allowed" });
+        }
+
+        const todayISO = todayStartISO();
+        const todayStr = todayISO.slice(0, 10);
+        const monthStart = new Date(); monthStart.setUTCDate(1); monthStart.setUTCHours(0, 0, 0, 0);
+        const monthStartISO = monthStart.toISOString();
+
+        // Fetch all leads (RBAC scoped)
+        let leadsQ = supabase.from("my_leads").select("id, owner_id, owner_name, stage, meeting_date, created_at, team");
+        leadsQ = applyRoleFilters(leadsQ, req.user);
+        const { data: leads, error: leadsErr } = await leadsQ;
+        if (leadsErr) throw leadsErr;
+        const rows = leads || [];
+        const leadIds = rows.map((r) => r.id).filter(Boolean);
+
+        // Fetch call activities today
+        let callsToday = [];
+        if (leadIds.length > 0) {
+            const { data: acts } = await supabase
+                .from("lead_activities")
+                .select("lead_id, user_id, created_at")
+                .eq("type", "CALL")
+                .gte("created_at", todayISO)
+                .in("lead_id", leadIds);
+            callsToday = acts || [];
+        }
+
+        // Fetch profiles for names
+        let profiles = [];
+        const { data: profileData } = await supabase.from("profiles").select("id, full_name, role, team");
+        profiles = profileData || [];
+
+        // Build per-owner stats
+        const statsMap = {};
+        const ensureOwner = (id, name) => {
+            if (!statsMap[id]) {
+                const p = profiles.find((pr) => pr.id === id);
+                statsMap[id] = { owner_id: id, owner_name: name || p?.full_name || "Unknown", role: p?.role || "", calls_today: 0, meetings_today: 0, new_leads_month: 0, wins_month: 0 };
+            }
+        };
+
+        rows.forEach((r) => {
+            const oid = r.owner_id; if (!oid) return;
+            ensureOwner(oid, r.owner_name);
+            // New leads this month
+            if (r.created_at && r.created_at >= monthStartISO) statsMap[oid].new_leads_month++;
+            // Wins this month (stage=Won)
+            if (r.stage === "Won" && r.created_at && r.created_at >= monthStartISO) statsMap[oid].wins_month++;
+            // Meetings today
+            if (r.meeting_date && r.meeting_date.slice(0, 10) === todayStr) statsMap[oid].meetings_today++;
+        });
+
+        callsToday.forEach((a) => {
+            const oid = a.user_id; if (!oid) return;
+            ensureOwner(oid, null);
+            statsMap[oid].calls_today++;
+        });
+
+        const team = Object.values(statsMap).sort((a, b) => (b.calls_today + b.wins_month) - (a.calls_today + a.wins_month));
+        res.json({ team, as_of: new Date().toISOString() });
+    } catch (err) {
+        console.error("getTeamProductivity error:", err.message);
+        res.status(500).json({ message: "Failed to load team productivity" });
+    }
+};
+
+// ─────────────────────────────────────────────────────────────
+// Phase 2.3 — GET /api/dashboard/source-performance
+// Lead source breakdown: totals, wins, win rate, top 3
+// ─────────────────────────────────────────────────────────────
+exports.getSourcePerformance = async (req, res) => {
+    try {
+        let query = supabase.from("my_leads").select("id, lead_source, stage");
+        query = applyRoleFilters(query, req.user);
+        const { data, error } = await query;
+        if (error) throw error;
+        const rows = data || [];
+
+        const srcMap = {};
+        rows.forEach((r) => {
+            const src = r.lead_source || "Unknown";
+            if (!srcMap[src]) srcMap[src] = { source: src, total: 0, won: 0, lost: 0 };
+            srcMap[src].total++;
+            if (r.stage === "Won") srcMap[src].won++;
+            if (r.stage === "Lost") srcMap[src].lost++;
+        });
+
+        const sources = Object.values(srcMap)
+            .map((s) => ({ ...s, win_rate: s.total > 0 ? Math.round((s.won / s.total) * 100) : 0 }))
+            .sort((a, b) => b.total - a.total);
+
+        const top3 = [...sources].sort((a, b) => b.total - a.total).slice(0, 3);
+        const highestWinRate = [...sources].filter((s) => s.total >= 3).sort((a, b) => b.win_rate - a.win_rate)[0] || null;
+
+        res.json({ sources, top3_by_volume: top3, highest_win_rate: highestWinRate });
+    } catch (err) {
+        console.error("getSourcePerformance error:", err.message);
+        res.status(500).json({ message: "Failed to load source performance" });
+    }
+};

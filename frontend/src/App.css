@@ -1737,3 +1737,439 @@ tr:hover {
   cursor: not-allowed;
   opacity: 0.6;
 }
+
+/* ===== PHASE 2: ANALYTICS PANELS ===== */
+
+.phase2-analytics {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.phase2-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07);
+}
+
+.p2-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 16px;
+}
+
+.p2-loading {
+  color: #94a3b8;
+  font-size: 13px;
+  padding: 12px 0;
+}
+
+/* Funnel */
+.funnel-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.funnel-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.funnel-label {
+  width: 110px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  flex-shrink: 0;
+}
+
+.funnel-bar-wrap {
+  flex: 1;
+  background: #f1f5f9;
+  border-radius: 6px;
+  height: 28px;
+  position: relative;
+  overflow: hidden;
+}
+
+.funnel-bar {
+  height: 100%;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  padding-left: 8px;
+  transition: width 0.4s ease;
+}
+
+.funnel-bar-count {
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.funnel-rate {
+  width: 44px;
+  text-align: right;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* P2 sub section */
+.p2-sub-section {
+  margin-top: 20px;
+}
+
+.p2-sub-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748b;
+  margin-bottom: 10px;
+}
+
+.p2-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.p2-table th {
+  background: #f8fafc;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: #64748b;
+  padding: 8px;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+}
+
+.p2-table td {
+  padding: 8px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.win-rate-badge {
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Source Performance */
+.src-highlights {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.src-highlight-card {
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 14px;
+  text-align: center;
+  border: 1px solid #e2e8f0;
+}
+
+.src-highlight-winner {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.src-rank {
+  font-size: 20px;
+  margin-bottom: 4px;
+}
+
+.src-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 2px;
+}
+
+.src-count {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.src-wr {
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.src-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.src-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.src-bar-label {
+  width: 110px;
+  font-size: 12px;
+  color: #475569;
+  flex-shrink: 0;
+  font-weight: 500;
+}
+
+.src-bar-track {
+  flex: 1;
+  background: #f1f5f9;
+  border-radius: 6px;
+  height: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.src-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  border-radius: 6px;
+  transition: width 0.4s ease;
+}
+
+.src-bar-text {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  color: #1e293b;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Team Productivity */
+.prod-table tbody tr.prod-row-green {
+  background: #f0fdf4;
+}
+
+.prod-table tbody tr.prod-row-red {
+  background: #fef2f2;
+}
+
+.prod-num {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.p2-legend {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.legend-green {
+  color: #16a34a;
+}
+
+.legend-red {
+  color: #dc2626;
+}
+
+/* ===== MY DAY VIEW ===== */
+.myday-view {
+  max-width: 900px;
+}
+
+.myday-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.myday-title {
+  margin: 0 0 4px;
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.myday-subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.myday-summary-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.myday-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: #e0f2fe;
+  color: #0369a1;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.myday-badge-red {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.myday-empty {
+  text-align: center;
+  padding: 60px 0;
+  font-size: 18px;
+  color: #64748b;
+}
+
+.myday-section {
+  margin-bottom: 28px;
+}
+
+.myday-section-danger {
+  background: #fffbfb;
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.myday-section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 12px;
+}
+
+.myday-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.myday-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.15s;
+}
+
+.myday-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.myday-task-card {
+  border-left: 3px solid #8b5cf6;
+}
+
+.myday-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.myday-lead-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #2563eb;
+  cursor: pointer;
+}
+
+.myday-lead-name:hover {
+  text-decoration: underline;
+}
+
+.myday-stage-badge {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  background: #e0e7ff;
+  color: #3730a3;
+  margin-left: 6px;
+}
+
+.myday-card-body {
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 8px;
+  line-height: 1.7;
+}
+
+.myday-task-desc {
+  font-weight: 400;
+  color: #64748b;
+}
+
+.myday-done-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 6px;
+  background: #dcfce7;
+  color: #166534;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.myday-done-btn:hover:not(:disabled) {
+  background: #bbf7d0;
+}
+
+.myday-done-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Completeness bar */
+.completeness-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.completeness-track {
+  flex: 1;
+  height: 4px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.completeness-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s;
+}
+
+.completeness-pct {
+  font-size: 10px;
+  font-weight: 600;
+  flex-shrink: 0;
+  min-width: 30px;
+  text-align: right;
+}
