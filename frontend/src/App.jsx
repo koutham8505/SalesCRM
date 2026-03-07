@@ -25,7 +25,6 @@ import WinLossAnalysis from "./components/WinLossAnalysis";
 import WhatsAppBroadcast from "./components/WhatsAppBroadcast";
 import AnnouncementBanner from "./components/AnnouncementBanner";
 import AnnouncementsPanel from "./components/AnnouncementsPanel";
-import RemindersPage from "./components/RemindersPage";
 import { useFollowUpNotifications } from "./hooks/useFollowUpNotifications";
 import "./App.css";
 
@@ -228,8 +227,6 @@ export default function App({ session, onLogout }) {
         return <WinLossAnalysis leads={leads} />;
       case "announcements_mgmt":
         return <AnnouncementsPanel token={session?.access_token} role={role} />;
-      case "reminders":
-        return <RemindersPage token={session?.access_token} role={role} />;
       case "reports":
         return (
           <>

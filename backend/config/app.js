@@ -16,7 +16,6 @@ const masterDataRoutes = require("../routes/masterData.routes");
 const approvalsRoutes = require("../routes/approvals.routes");
 const notificationsRoutes = require("../routes/notifications.routes");
 const announcementsRoutes = require("../routes/announcements.routes");
-const remindersRoutes = require("../routes/reminders.routes");
 
 const app = express();
 
@@ -56,6 +55,5 @@ app.use("/api/master-data", masterDataRoutes);
 app.use("/api/approvals", approvalsRoutes);
 app.use("/api/notifications", notificationsRoutes);
 app.use("/api/announcements", announcementsRoutes);
-app.use("/api/reminders", remindersRoutes);
 
 module.exports = app;
