@@ -101,6 +101,24 @@ export default function DashboardCards({ leads, role, session, showMetrics = tru
                 </div>
             </div>
 
+            {/* ─── Row 1.5: Phase 1 SLA Alert Cards ─── */}
+            <div className="dashboard-row">
+                <div className="dashboard-card" style={{ borderLeft: "4px solid #ef4444", background: "linear-gradient(135deg,#fef2f2,#fff5f5)" }}>
+                    <div className="dash-title" style={{ color: "#dc2626" }}>⚠️ Not Contacted 24h</div>
+                    <div className="dash-count" style={{ color: "#dc2626" }}>
+                        {loading ? "…" : (m.not_contacted_24h ?? 0)}
+                    </div>
+                    <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>New leads waiting &gt;24h</div>
+                </div>
+                <div className="dashboard-card" style={{ borderLeft: "4px solid #f59e0b", background: "linear-gradient(135deg,#fffbeb,#fffdf0)" }}>
+                    <div className="dash-title" style={{ color: "#d97706" }}>🎯 No Next Action</div>
+                    <div className="dash-count" style={{ color: "#d97706" }}>
+                        {loading ? "…" : (m.no_next_action ?? 0)}
+                    </div>
+                    <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>Active leads without a next step</div>
+                </div>
+            </div>
+
             {/* ─── Row 2: Today's Activity (always visible) ─── */}
             <div className="dashboard-row today-activity-row">
                 <div className="dashboard-card today-meetings">

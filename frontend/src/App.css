@@ -1634,3 +1634,106 @@ tr:hover {
     font-size: 18px;
   }
 }
+
+/* ===== PHASE 1: STAGE PIPELINE ===== */
+
+/* Lock banner */
+.lock-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #9a3412;
+  margin-bottom: 16px;
+}
+
+/* Stage stepper */
+.stage-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+
+.stage-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  padding: 6px 10px;
+  position: relative;
+  flex: 1;
+  min-width: 80px;
+  transition: all 0.15s;
+}
+
+.stage-step:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 14px;
+  right: -50%;
+  width: 100%;
+  height: 2px;
+  background: #e2e8f0;
+  z-index: 0;
+}
+
+.stage-step.stage-past::after,
+.stage-step.stage-active::after {
+  background: var(--stage-color);
+}
+
+.stage-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  border: 2px solid #cbd5e1;
+  z-index: 1;
+  transition: all 0.15s;
+}
+
+.stage-step.stage-active .stage-dot {
+  background: var(--stage-color);
+  border-color: var(--stage-color);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--stage-color) 20%, transparent);
+}
+
+.stage-step.stage-past .stage-dot {
+  background: var(--stage-color);
+  border-color: var(--stage-color);
+}
+
+.stage-step:hover:not(.stage-locked) .stage-dot {
+  border-color: var(--stage-color);
+  transform: scale(1.15);
+}
+
+.stage-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #94a3b8;
+  margin-top: 4px;
+  text-align: center;
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+}
+
+.stage-step.stage-active .stage-label {
+  color: var(--stage-color);
+}
+
+.stage-step.stage-past .stage-label {
+  color: var(--stage-color);
+  opacity: 0.7;
+}
+
+.stage-step.stage-locked {
+  cursor: not-allowed;
+  opacity: 0.6;
+}

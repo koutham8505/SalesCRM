@@ -46,9 +46,9 @@ exports.getMetrics = async (req, res) => {
 
         // ── 1. Fetch leads (RBAC-scoped) ──
         const selectCols = [
-            "id", "owner_id", "team", "status", "call_status",
-            "meeting_date", "next_follow_up",
-            "last_called_at",
+            "id", "owner_id", "team", "status", "stage", "call_status",
+            "meeting_date", "next_follow_up", "next_action", "next_action_date",
+            "last_called_at", "first_contacted_at", "created_at",
             "proposal_sent", "pitch_deck_sent", "mail_sent",
             "updated_at",
         ].join(", ");
@@ -160,6 +160,25 @@ exports.getMetrics = async (req, res) => {
             }
         }
 
+        // ── 5. Phase 1: SLA + Next Action metrics ──
+        const now = new Date();
+        const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+        // Leads created >24h ago still in "New" stage (never contacted)
+        const not_contacted_24h = rows.filter((r) => {
+            const stage = r.stage || "New";
+            if (stage !== "New") return false;
+            const created = r.created_at ? new Date(r.created_at) : null;
+            return created && created < twentyFourHoursAgo && !r.first_contacted_at;
+        }).length;
+
+        // Leads with no next action set (excluding Won/Lost)
+        const no_next_action = rows.filter((r) => {
+            const stage = r.stage || "New";
+            if (stage === "Won" || stage === "Lost") return false;
+            return !r.next_action;
+        }).length;
+
         res.json({
             // Pipeline summary (all-time)
             all_leads_count,
@@ -181,6 +200,9 @@ exports.getMetrics = async (req, res) => {
             pitch_decks_sent_total: pitchAll.length,
             emails_sent_today: Math.max(mailToday.length, emailActsToday),
             emails_sent_total: mailAll.length,
+            // Phase 1: SLA & Next Action
+            not_contacted_24h,
+            no_next_action,
         });
     } catch (err) {
         console.error("getMetrics error:", err.message);

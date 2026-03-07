@@ -14,6 +14,10 @@ const nullifyEmpty = (obj) => {
   return out;
 };
 
+const STAGE_PIPELINE = ["New", "Contacted", "Demo/Meeting", "Proposal", "Negotiation", "Won", "Lost"];
+const LOCKED_STAGES = ["Won", "Lost"];
+const LOCKED_FIELDS = ["lead_name", "institution_name", "phone", "email", "deal_value", "stage", "status"];
+
 const cleanForDb = (body) => {
   const { follow_up_status, meeting_today, id, created_at, ...rest } = body;
   return nullifyEmpty(rest);
@@ -200,6 +204,21 @@ exports.updateLead = async (req, res) => {
 
     let cleaned = cleanForDb(req.body);
 
+    // ── Stage Lock: Won/Lost leads — only Manager/Admin can edit locked fields ──
+    const existingStage = existing.stage || "New";
+    if (LOCKED_STAGES.includes(existingStage)) {
+      const isPrivileged = user.role === "Admin" || user.role === "Manager";
+      if (!isPrivileged) {
+        const attemptedLockedFields = LOCKED_FIELDS.filter((f) => cleaned[f] !== undefined && cleaned[f] !== existing[f]);
+        if (attemptedLockedFields.length > 0) {
+          return res.status(403).json({
+            message: `This lead is ${existingStage}. Only Managers/Admins can edit: ${attemptedLockedFields.join(", ")}.`,
+            locked: true,
+          });
+        }
+      }
+    }
+
     // Validation
     const merged = { ...existing, ...cleaned };
     const vErrors = await validateLead(merged);
@@ -217,10 +236,16 @@ exports.updateLead = async (req, res) => {
       delete cleaned.deal_value; delete cleaned.margin;
     }
 
+    // ── Auto-stamp first_contacted_at when stage moves to Contacted for first time ──
+    const newStage = cleaned.stage;
+    if (newStage && newStage !== "New" && newStage !== existingStage && !existing.first_contacted_at) {
+      cleaned.first_contacted_at = new Date().toISOString();
+    }
+
     // Auto-stamp last_called_at whenever call_status is being set or changed
-    const newStatus = cleaned.call_status;
-    const prevStatus = existing.call_status;
-    if (newStatus && newStatus !== "Not Called" && newStatus !== "") {
+    const newCallStatus = cleaned.call_status;
+    const prevCallStatus = existing.call_status;
+    if (newCallStatus && newCallStatus !== "Not Called" && newCallStatus !== "") {
       cleaned.last_called_at = new Date().toISOString();
     }
 
@@ -231,14 +256,13 @@ exports.updateLead = async (req, res) => {
     if (error) throw error;
 
     // Auto-log a CALL activity when call_status is set/changed
-    // This ensures "Calls Today" in the dashboard is always accurate
-    if (newStatus && newStatus !== "Not Called" && newStatus !== "" && newStatus !== prevStatus) {
+    if (newCallStatus && newCallStatus !== "Not Called" && newCallStatus !== "" && newCallStatus !== prevCallStatus) {
       await supabase.from("lead_activities").insert([{
         lead_id: id,
         user_id: user.id,
         type: "CALL",
-        description: `Call status updated to: ${newStatus}`,
-        outcome: newStatus,
+        description: `Call status updated to: ${newCallStatus}`,
+        outcome: newCallStatus,
       }]).select();
     }
 

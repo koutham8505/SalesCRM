@@ -1,6 +1,13 @@
 // D:\SalesCRM\frontend\src\components\LeadForm.jsx
 import { useState } from "react";
 
+const STAGES = ["New", "Contacted", "Demo/Meeting", "Proposal", "Negotiation", "Won", "Lost"];
+const STAGE_COLORS = {
+    "New": "#64748b", "Contacted": "#3b82f6", "Demo/Meeting": "#8b5cf6",
+    "Proposal": "#f59e0b", "Negotiation": "#f97316", "Won": "#22c55e", "Lost": "#ef4444"
+};
+const LOST_REASONS = ["Price Too High", "No Budget", "Not Interested", "Using Competitor", "Bad Timing", "Other"];
+
 const EMPTY_LEAD = {
     id: null, lead_date: "", lead_name: "", job_title: "", institution_name: "",
     phone: "", alt_phone: "", whatsapp: "", email: "", website: "",
@@ -8,6 +15,7 @@ const EMPTY_LEAD = {
     proposal_sent: false, proposal_link: "",
     call_status: "", remark: "", next_follow_up: "", meeting_date: "", lead_source: "",
     lead_owner: "", status: "", owner_id: "", owner_name: "", owner_email: "",
+    stage: "New", lost_reason: "", next_action: "", next_action_date: "",
     // School Details
     board: "", grades_offered: "", student_strength: "", fees: "",
     medium_of_instruction: "", school_type: "", tier: "", geo_classification: "",
@@ -20,18 +28,33 @@ export default function LeadForm({ lead, editing, onSave, onClose, saving, role,
             ...EMPTY_LEAD, ...lead,
             lead_date: lead.lead_date ? lead.lead_date.slice(0, 10) : "",
             next_follow_up: lead.next_follow_up ? lead.next_follow_up.slice(0, 10) : "",
+            next_action_date: lead.next_action_date ? lead.next_action_date.slice(0, 10) : "",
             meeting_date: lead.meeting_date ? lead.meeting_date.slice(0, 16) : "",
             proposal_sent: lead.proposal_sent || false,
+            stage: lead.stage || "New",
         };
     });
     const [errors, setErrors] = useState({});
 
     const canChangeOwner = role === "Manager" || role === "Admin";
+    const isPrivileged = role === "Admin" || role === "Manager";
+
+    // Lock key fields if lead is Won/Lost and user is not Manager/Admin
+    const isLocked = editing && (form.stage === "Won" || form.stage === "Lost") && !isPrivileged;
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         setForm((prev) => ({ ...prev, [name]: value }));
         if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
+    };
+
+    const handleStageClick = (stage) => {
+        if (isLocked) return;
+        setForm((prev) => ({
+            ...prev,
+            stage,
+            lost_reason: stage !== "Lost" ? "" : prev.lost_reason,
+        }));
     };
 
     const handleOwnerChange = (e) => {
@@ -56,6 +79,7 @@ export default function LeadForm({ lead, editing, onSave, onClose, saving, role,
         if (!form.institution_name?.trim()) errs.institution_name = "Institution is required";
         if (!form.phone?.trim() && !form.email?.trim()) errs.phone = "Phone or Email is required";
         if (!form.status) errs.status = "Status is required";
+        if (form.stage === "Lost" && !form.lost_reason) errs.lost_reason = "Please select a reason for loss";
         setErrors(errs);
         return Object.keys(errs).length === 0;
     };
@@ -66,9 +90,8 @@ export default function LeadForm({ lead, editing, onSave, onClose, saving, role,
         if (!payload.lead_date) delete payload.lead_date;
         if (!payload.next_follow_up) delete payload.next_follow_up;
         if (!payload.meeting_date) delete payload.meeting_date;
-        // Convert proposal_sent to boolean
+        if (!payload.next_action_date) delete payload.next_action_date;
         payload.proposal_sent = payload.proposal_sent === true || payload.proposal_sent === "Yes";
-        // Convert student_strength to integer or null
         if (payload.student_strength === "" || payload.student_strength === null) {
             payload.student_strength = null;
         } else {
@@ -83,17 +106,88 @@ export default function LeadForm({ lead, editing, onSave, onClose, saving, role,
         <div className="form-card">
             <h2>{editing ? "Edit Lead" : "Add New Lead"}</h2>
 
+            {/* ─── Lock Banner ─── */}
+            {isLocked && (
+                <div className="lock-banner">
+                    🔒 This lead is <strong>{form.stage}</strong>. Key fields are locked. Contact a Manager to make changes.
+                </div>
+            )}
+
+            {/* ─── Stage Pipeline Stepper ─── */}
+            <fieldset className="form-section">
+                <legend>Pipeline Stage</legend>
+                <div className="stage-stepper">
+                    {STAGES.map((s, i) => {
+                        const currentIdx = STAGES.indexOf(form.stage);
+                        const isPast = i < currentIdx;
+                        const isCurrent = s === form.stage;
+                        return (
+                            <div
+                                key={s}
+                                className={`stage-step ${isCurrent ? "stage-active" : ""} ${isPast ? "stage-past" : ""} ${isLocked ? "stage-locked" : ""}`}
+                                onClick={() => handleStageClick(s)}
+                                title={s}
+                                style={{ "--stage-color": STAGE_COLORS[s] }}
+                            >
+                                <div className="stage-dot" />
+                                <span className="stage-label">{s}</span>
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* Lost Reason — only show when stage = Lost */}
+                {form.stage === "Lost" && (
+                    <div className="form-grid" style={{ marginTop: 12 }}>
+                        <label>
+                            Loss Reason *
+                            <select name="lost_reason" value={form.lost_reason} onChange={handleChange}
+                                className={errors.lost_reason ? "input-error" : ""} disabled={isLocked}>
+                                <option value="">-- Select reason --</option>
+                                {LOST_REASONS.map((r) => <option key={r} value={r}>{r}</option>)}
+                            </select>
+                            {renderError("lost_reason")}
+                        </label>
+                    </div>
+                )}
+            </fieldset>
+
+            {/* ─── Next Action ─── */}
+            <fieldset className="form-section">
+                <legend>Next Action</legend>
+                <div className="form-grid">
+                    <label>
+                        Next Action
+                        <select name="next_action" value={form.next_action} onChange={handleChange} disabled={isLocked}>
+                            <option value="">-- None --</option>
+                            <option value="Call">📞 Call</option>
+                            <option value="Send Proposal">📄 Send Proposal</option>
+                            <option value="Visit Campus">🏫 Visit Campus</option>
+                            <option value="Send Email">✉️ Send Email</option>
+                            <option value="Demo">🖥️ Demo</option>
+                            <option value="Follow Up">🔔 Follow Up</option>
+                            <option value="Negotiate">🤝 Negotiate</option>
+                        </select>
+                    </label>
+                    <label>
+                        Due Date
+                        <input type="date" name="next_action_date" value={form.next_action_date}
+                            onChange={handleChange} disabled={isLocked} />
+                    </label>
+                </div>
+            </fieldset>
+
             {/* ─── Contact Info ─── */}
             <fieldset className="form-section">
                 <legend>Contact Info</legend>
                 <div className="form-grid">
-                    <label>Lead Name * <input type="text" name="lead_name" value={form.lead_name} onChange={handleChange} placeholder="Full name" className={errors.lead_name ? "input-error" : ""} /> {renderError("lead_name")}</label>
+                    <label>Lead Name * <input type="text" name="lead_name" value={form.lead_name} onChange={handleChange} placeholder="Full name" className={errors.lead_name ? "input-error" : ""} disabled={isLocked} /> {renderError("lead_name")}</label>
                     <label>Job Title <input type="text" name="job_title" value={form.job_title} onChange={handleChange} placeholder="e.g. CEO" /></label>
-                    <label>Institution * <input type="text" name="institution_name" value={form.institution_name} onChange={handleChange} placeholder="Company / Organisation" className={errors.institution_name ? "input-error" : ""} /> {renderError("institution_name")}</label>
-                    <label>Phone {!form.email && "*"} <input type="text" name="phone" value={form.phone} onChange={handleChange} placeholder="+91 ..." className={errors.phone ? "input-error" : ""} /> {renderError("phone")}</label>
+                    <label>Institution * <input type="text" name="institution_name" value={form.institution_name} onChange={handleChange} placeholder="Company / Organisation" className={errors.institution_name ? "input-error" : ""} disabled={isLocked} /> {renderError("institution_name")}</label>
+                    <label>Phone {!form.email && "*"} <input type="text" name="phone" value={form.phone} onChange={handleChange} placeholder="+91 ..." className={errors.phone ? "input-error" : ""} disabled={isLocked} /> {renderError("phone")}</label>
                     <label>Alt Phone <input type="text" name="alt_phone" value={form.alt_phone} onChange={handleChange} placeholder="Alternative number" /></label>
                     <label>WhatsApp <input type="text" name="whatsapp" value={form.whatsapp} onChange={handleChange} placeholder="+91 ..." /></label>
-                    <label>Email {!form.phone && "*"} <input type="email" name="email" value={form.email} onChange={handleChange} placeholder="email@example.com" /></label>
+                    <label>Email {!form.phone && "*"} <input type="email" name="email" value={form.email} onChange={handleChange} placeholder="email@example.com" disabled={isLocked} /></label>
                     <label>Website <input type="text" name="website" value={form.website} onChange={handleChange} placeholder="https://..." /></label>
                 </div>
             </fieldset>
@@ -108,10 +202,10 @@ export default function LeadForm({ lead, editing, onSave, onClose, saving, role,
                         <option value="Cold Call">Cold Call</option><option value="Referral">Referral</option>
                         <option value="LinkedIn">LinkedIn</option><option value="Website">Website</option>
                         <option value="Email Campaign">Email Campaign</option><option value="Walk-in">Walk-in</option>
+                        <option value="Event">Event</option><option value="Digital Ad">Digital Ad</option>
                         <option value="Other">Other</option>
                     </select></label>
 
-                    {/* Lead Owner: dropdown for Manager/Admin, read-only for others */}
                     {canChangeOwner ? (
                         <label>Lead Owner
                             <select value={form.owner_id || ""} onChange={handleOwnerChange}>
@@ -140,6 +234,7 @@ export default function LeadForm({ lead, editing, onSave, onClose, saving, role,
                         <option value="">-- Select --</option><option value="Yes">Yes</option><option value="No">No</option>
                     </select></label>
                     <label>Proposal Link <input type="url" name="proposal_link" value={form.proposal_link} onChange={handleChange} placeholder="https://drive.google.com/..." /></label>
+                    <label>Deal Value (₹) <input type="number" name="deal_value" value={form.deal_value || ""} onChange={handleChange} placeholder="e.g. 50000" disabled={isLocked} /></label>
                 </div>
             </fieldset>
 

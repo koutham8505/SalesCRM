@@ -10,6 +10,13 @@ const hasFeature = (role, ff, feature) => {
 const scoreLabel = (s) => s >= 70 ? "Hot" : s >= 40 ? "Warm" : "Cold";
 const scoreClass = (s) => s >= 70 ? "score-hot" : s >= 40 ? "score-warm" : "score-cold";
 
+const STAGE_COLORS = {
+    "New": "#64748b", "Contacted": "#3b82f6", "Demo/Meeting": "#8b5cf6",
+    "Proposal": "#f59e0b", "Negotiation": "#f97316", "Won": "#22c55e", "Lost": "#ef4444"
+};
+
+const today = new Date().toISOString().slice(0, 10);
+
 export default function LeadsTable({
     leads, role, featureFlags, search, filterTeam, filterOwner,
     selectedIds, onToggleSelect, onSelectAll, onEdit, onDelete, onView,
@@ -44,6 +51,8 @@ export default function LeadsTable({
                                 <tr>
                                     {canBulk && <th style={{ width: 36 }}><input type="checkbox" checked={allSelected} onChange={() => onSelectAll(filtered.map((l) => l.id))} /></th>}
                                     <th>Lead Name</th>
+                                    <th>Stage</th>
+                                    <th>Next Action</th>
                                     <th>Job Title</th>
                                     <th>Institution</th>
                                     <th>Phone</th>
@@ -78,6 +87,19 @@ export default function LeadsTable({
                                     <tr key={lead.id} className={selectedIds.includes(lead.id) ? "row-selected" : ""}>
                                         {canBulk && <td><input type="checkbox" checked={selectedIds.includes(lead.id)} onChange={() => onToggleSelect(lead.id)} /></td>}
                                         <td><strong className="lead-name-link" onClick={() => onView?.(lead)}>{lead.lead_name || "-"}</strong></td>
+                                        <td>
+                                            <span className="stage-pill" style={{ background: STAGE_COLORS[lead.stage] || "#64748b", color: "#fff", padding: "2px 8px", borderRadius: 12, fontSize: 11, whiteSpace: "nowrap" }}>
+                                                {lead.stage || "New"}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {lead.next_action ? (
+                                                <span style={{ color: lead.next_action_date && lead.next_action_date < today ? "#ef4444" : "#0f172a", fontSize: 12 }}>
+                                                    {lead.next_action}{lead.next_action_date ? ` · ${lead.next_action_date}` : ""}
+                                                    {lead.next_action_date && lead.next_action_date < today && " ⚠️"}
+                                                </span>
+                                            ) : <span style={{ color: "#94a3b8", fontSize: 11 }}>None</span>}
+                                        </td>
                                         <td>{lead.job_title || "-"}</td>
                                         <td>{lead.institution_name || "-"}</td>
                                         <td>{lead.phone || "-"}</td>
