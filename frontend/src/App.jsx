@@ -50,6 +50,7 @@ export default function App({ session, onLogout }) {
   const [filterOwner, setFilterOwner] = useState("");
   const [selectedIds, setSelectedIds] = useState([]);
   const [namePrompt, setNamePrompt] = useState("");
+  const [drillFilter, setDrillFilter] = useState(null); // null | 'demos' | 'proposals'
 
   const role = profile?.role || "Executive";
   const auth = { Authorization: `Bearer ${session?.access_token}`, "Content-Type": "application/json" };
@@ -105,6 +106,18 @@ export default function App({ session, onLogout }) {
   useEffect(() => { fetchTasks(); }, [fetchTasks]);
 
   const teams = [...new Set(leads.map((l) => l.team).filter(Boolean))].sort();
+
+  // Drill-down from dashboard KPI cards → Leads tab with preset filter
+  const handleDrillDown = (type) => {
+    setDrillFilter(type);
+    setView("leads");
+  };
+
+  // Clear drill filter when user changes view manually
+  const handleNavigate = (v) => {
+    if (v !== "leads") setDrillFilter(null);
+    setView(v);
+  };
 
   // -- CRUD Handlers --
   const handleSave = async (form, isEdit) => {
@@ -197,7 +210,7 @@ export default function App({ session, onLogout }) {
       case "dashboard":
         return (
           <>
-            <DashboardCards leads={leads} role={role} session={session} onLogout={onLogout} />
+            <DashboardCards leads={leads} role={role} session={session} onLogout={onLogout} onDrillDown={handleDrillDown} />
             <div className="phase2-analytics">
               <ConversionFunnel token={session?.access_token} />
               <SourcePerformance token={session?.access_token} />
@@ -209,6 +222,14 @@ export default function App({ session, onLogout }) {
       default:
         return (
           <>
+            {drillFilter && (
+              <div className="drill-banner">
+                <span>
+                  {drillFilter === "demos" ? "🎬 Showing: Leads with Demo Fixed (Demo/Meeting stage)" : "📄 Showing: Leads where Proposal was Sent"}
+                </span>
+                <button className="drill-clear" onClick={() => setDrillFilter(null)}>✕ Clear filter</button>
+              </div>
+            )}
             <ActionBar
               role={role} featureFlags={profile?.feature_flags}
               search={search} onSearchChange={setSearch}
@@ -232,6 +253,7 @@ export default function App({ session, onLogout }) {
               selectedIds={selectedIds} onToggleSelect={toggleSelect} onSelectAll={toggleSelectAll}
               onEdit={(l) => { setEditLead(l); setShowForm(true); }}
               onDelete={handleDelete} onView={(l) => setViewLead(l)}
+              drillFilter={drillFilter}
             />
           </>
         );
@@ -249,7 +271,7 @@ export default function App({ session, onLogout }) {
 
   return (
     <div className="app-shell">
-      <NavBar profile={profile} currentView={view} onNavigate={setView} onLogout={onLogout}
+      <NavBar profile={profile} currentView={view} onNavigate={handleNavigate} onLogout={onLogout}
         session={session}
         onNotifLeadClick={(leadId) => {
           const found = leads.find((l) => l.id === leadId);

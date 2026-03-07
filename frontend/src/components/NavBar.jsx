@@ -44,6 +44,14 @@ export default function NavBar({ profile, currentView, onNavigate, onLogout, ses
                 </div>
             </div>
             <div className="nav-right" ref={menuRef}>
+                <button
+                    className="dark-mode-toggle"
+                    onClick={toggleTheme}
+                    title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                    aria-label="Toggle dark mode"
+                >
+                    {darkMode ? "☀️" : "🌙"}
+                </button>
                 <NotificationBell session={session} onNotifClick={onNotifLeadClick} />
                 <div className="nav-avatar" onClick={() => setMenuOpen(!menuOpen)} title={displayName}>{initials}</div>
                 {menuOpen && (

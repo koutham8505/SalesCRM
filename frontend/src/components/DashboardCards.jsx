@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 
 const API = `${import.meta.env.VITE_API_URL || "http://localhost:3000"}/api/dashboard/metrics`;
 
-export default function DashboardCards({ leads, role, session, showMetrics = true, onLogout }) {
+export default function DashboardCards({ leads, role, session, showMetrics = true, onLogout, onDrillDown }) {
     const [metrics, setMetrics] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -57,23 +57,21 @@ export default function DashboardCards({ leads, role, session, showMetrics = tru
     // If the server returned an error object as metrics (old bug guard)
     const isValidMetrics = metrics && typeof metrics.all_leads_count === "number";
 
+    // Drill-down handler — navigates to leads list with a preset filter
+    const handleDrillDown = (drillType) => {
+        onDrillDown?.(drillType);
+    };
+
     return (
         <div className="dashboard-container">
             {/* Error Banner */}
             {error && (
-                <div style={{
-                    background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8,
-                    padding: "12px 16px", marginBottom: 16, display: "flex",
-                    justifyContent: "space-between", alignItems: "center", color: "#7f1d1d"
-                }}>
+                <div className="dash-error-banner">
                     <span>⚠️ {error}</span>
-                    <button onClick={loadMetrics} style={{
-                        background: "#dc2626", color: "#fff", border: "none",
-                        borderRadius: 6, padding: "4px 12px", cursor: "pointer", fontSize: 13
-                    }}>Retry</button>
+                    <button onClick={loadMetrics} className="dash-retry-btn">Retry</button>
                 </div>
             )}
-            {/* ─── Row 1: Summary cards (always visible) ─── */}
+            {/* ─── Row 1: Summary cards ─── */}
             <div className="dashboard-row">
                 <div className="dashboard-card meetings">
                     <div className="dash-title">{prefix} Meetings</div>
@@ -103,23 +101,55 @@ export default function DashboardCards({ leads, role, session, showMetrics = tru
 
             {/* ─── Row 1.5: Phase 1 SLA Alert Cards ─── */}
             <div className="dashboard-row">
-                <div className="dashboard-card" style={{ borderLeft: "4px solid #ef4444", background: "linear-gradient(135deg,#fef2f2,#fff5f5)" }}>
-                    <div className="dash-title" style={{ color: "#dc2626" }}>⚠️ Not Contacted 24h</div>
-                    <div className="dash-count" style={{ color: "#dc2626" }}>
+                <div className="dashboard-card sla-card sla-danger">
+                    <div className="dash-title">⚠️ Not Contacted 24h</div>
+                    <div className="dash-count sla-danger-count">
                         {loading ? "…" : (m.not_contacted_24h ?? 0)}
                     </div>
-                    <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>New leads waiting &gt;24h</div>
+                    <div className="dash-subtitle">New leads waiting &gt;24h</div>
                 </div>
-                <div className="dashboard-card" style={{ borderLeft: "4px solid #f59e0b", background: "linear-gradient(135deg,#fffbeb,#fffdf0)" }}>
-                    <div className="dash-title" style={{ color: "#d97706" }}>🎯 No Next Action</div>
-                    <div className="dash-count" style={{ color: "#d97706" }}>
+                <div className="dashboard-card sla-card sla-warning">
+                    <div className="dash-title">🎯 No Next Action</div>
+                    <div className="dash-count sla-warning-count">
                         {loading ? "…" : (m.no_next_action ?? 0)}
                     </div>
-                    <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>Active leads without a next step</div>
+                    <div className="dash-subtitle">Active leads without a next step</div>
                 </div>
+
+                {/* ── NEW: Demos Fixed (clickable) ── */}
+                <button
+                    className="dashboard-card kpi-clickable kpi-demos"
+                    onClick={() => handleDrillDown("demos")}
+                    title="Click to view all leads with demos scheduled/completed"
+                    disabled={loading}
+                >
+                    <div className="kpi-icon">🎬</div>
+                    <div className="dash-title">DEMOS FIXED</div>
+                    <div className="dash-count kpi-demos-count">
+                        {loading ? "…" : (m.demos_fixed ?? 0)}
+                    </div>
+                    <div className="dash-subtitle">Demo/Meeting stage leads</div>
+                    <div className="kpi-cta">View leads →</div>
+                </button>
+
+                {/* ── NEW: Proposals Sent (clickable) ── */}
+                <button
+                    className="dashboard-card kpi-clickable kpi-proposals"
+                    onClick={() => handleDrillDown("proposals")}
+                    title="Click to view all leads where proposal was sent"
+                    disabled={loading}
+                >
+                    <div className="kpi-icon">📄</div>
+                    <div className="dash-title">PROPOSALS SENT</div>
+                    <div className="dash-count kpi-proposals-count">
+                        {loading ? "…" : (m.proposals_sent ?? 0)}
+                    </div>
+                    <div className="dash-subtitle">Leads with proposal sent</div>
+                    <div className="kpi-cta">View leads →</div>
+                </button>
             </div>
 
-            {/* ─── Row 2: Today's Activity (always visible) ─── */}
+            {/* ─── Row 2: Today's Activity ─── */}
             <div className="dashboard-row today-activity-row">
                 <div className="dashboard-card today-meetings">
                     <div className="dash-title">📅 Meetings Today</div>

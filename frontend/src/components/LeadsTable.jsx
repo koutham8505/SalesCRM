@@ -20,6 +20,7 @@ const today = new Date().toISOString().slice(0, 10);
 export default function LeadsTable({
     leads, role, featureFlags, search, filterTeam, filterOwner,
     selectedIds, onToggleSelect, onSelectAll, onEdit, onDelete, onView,
+    drillFilter,
 }) {
     const canDelete = hasFeature(role, featureFlags, "delete");
     const canBulk = hasFeature(role, featureFlags, "bulk_update");
@@ -35,15 +36,34 @@ export default function LeadsTable({
         }
         if (filterTeam) result = result.filter((l) => l.team === filterTeam);
         if (filterOwner) result = result.filter((l) => l.owner_id === filterOwner);
+
+        // Drill-down filter from dashboard KPI cards
+        if (drillFilter === "demos") {
+            const DEMO_STATUSES = ["scheduled", "completed", "demo scheduled", "demo done"];
+            result = result.filter((l) =>
+                l.stage === "Demo/Meeting" ||
+                DEMO_STATUSES.includes((l.call_status || "").toLowerCase())
+            );
+        }
+        if (drillFilter === "proposals") {
+            result = result.filter((l) => l.proposal_sent === true || l.proposal_sent === "Yes");
+        }
+
         return result;
-    }, [leads, search, filterTeam, filterOwner]);
+    }, [leads, search, filterTeam, filterOwner, drillFilter]);
 
     const allSelected = filtered.length > 0 && filtered.every((l) => selectedIds.includes(l.id));
 
     return (
         <div className="table-card">
-            <h2>Leads ({filtered.length})</h2>
-            {filtered.length === 0 ? (<p className="empty-message">No leads found</p>) : (
+            <h2>Leads ({filtered.length})
+                {drillFilter && (
+                    <span className="drill-count-label">
+                        {drillFilter === "demos" ? " — Demo Fixed" : " — Proposal Sent"}
+                    </span>
+                )}
+            </h2>
+            {filtered.length === 0 ? (<p className="empty-message">No leads found{drillFilter ? " matching this filter" : ""}</p>) : (
                 <>
                     <div className="table-wrapper desktop-only">
                         <table>

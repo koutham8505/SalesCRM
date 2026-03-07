@@ -179,6 +179,18 @@ exports.getMetrics = async (req, res) => {
             return !r.next_action;
         }).length;
 
+        // ── 6. New KPI: Demos Fixed & Proposals Sent ──
+        // Demos Fixed = leads in Demo/Meeting stage OR call_status in [Scheduled, Completed, Demo Scheduled]
+        const DEMO_STATUSES = ["scheduled", "completed", "demo scheduled", "demo done"];
+        const demos_fixed = rows.filter((r) => {
+            const stageMatch = r.stage === "Demo/Meeting";
+            const statusMatch = DEMO_STATUSES.includes((r.call_status || "").toLowerCase());
+            return stageMatch || statusMatch;
+        }).length;
+
+        // Proposals Sent = leads where proposal_sent = true / "Yes"
+        const proposals_sent = rows.filter((r) => isYes(r.proposal_sent)).length;
+
         res.json({
             // Pipeline summary (all-time)
             all_leads_count,
@@ -203,6 +215,9 @@ exports.getMetrics = async (req, res) => {
             // Phase 1: SLA & Next Action
             not_contacted_24h,
             no_next_action,
+            // New KPI cards
+            demos_fixed,
+            proposals_sent,
         });
     } catch (err) {
         console.error("getMetrics error:", err.message);
