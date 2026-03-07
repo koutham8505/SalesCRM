@@ -51,6 +51,8 @@ body {
 
 .app-shell {
   min-height: 100vh;
+  background: var(--bg);
+  transition: background 0.25s;
 }
 
 .app-container {
@@ -3956,4 +3958,234 @@ tr:hover {
 [data-theme="dark"] .dark-mode-toggle:hover {
   background: rgba(255, 255, 255, 0.05);
   color: #e2e8f0;
+}
+
+/* ================================================================
+   TODAY VIEW (myday-*)  — uses CSS variables for full theme support
+================================================================ */
+.myday-view {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 8px 0 40px;
+}
+
+.myday-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding: 20px 24px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 1px 4px var(--shadow);
+  transition: background 0.25s;
+}
+
+.myday-title {
+  margin: 0 0 2px;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.myday-subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.myday-summary-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.myday-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--bg-hover);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.myday-badge-red {
+  background: #fef2f2;
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+
+[data-theme="dark"] .myday-badge-red {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.myday-empty {
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--text-muted);
+  font-size: 15px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.myday-section {
+  margin-bottom: 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 4px var(--shadow);
+  transition: background 0.25s;
+}
+
+.myday-section-danger {
+  border-left: 4px solid #ef4444;
+  background: var(--bg-card);
+}
+
+[data-theme="dark"] .myday-section-danger {
+  background: rgba(239, 68, 68, 0.05);
+  border-left-color: #ef4444;
+}
+
+.myday-section-title {
+  margin: 0 0 14px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.myday-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.myday-card {
+  background: var(--bg-card2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  transition: background 0.25s, box-shadow 0.15s;
+}
+
+.myday-card:hover {
+  box-shadow: 0 2px 8px var(--shadow);
+}
+
+.myday-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.myday-lead-name {
+  font-size: 14px;
+  color: #2563eb;
+  cursor: pointer;
+}
+
+.myday-lead-name:hover {
+  text-decoration: underline;
+}
+
+.myday-stage-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 1px 8px;
+  border-radius: 10px;
+  background: var(--bg-hover);
+  color: var(--text-muted);
+  margin-left: 6px;
+  border: 1px solid var(--border);
+}
+
+.myday-card-body {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.7;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 6px;
+}
+
+.myday-done-btn {
+  padding: 3px 10px;
+  border-radius: 6px;
+  border: 1px solid #22c55e;
+  background: #f0fdf4;
+  color: #16a34a;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.myday-done-btn:hover:not(:disabled) {
+  background: #dcfce7;
+}
+
+[data-theme="dark"] .myday-done-btn {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: #4ade80;
+}
+
+[data-theme="dark"] .myday-done-btn:hover:not(:disabled) {
+  background: rgba(34, 197, 94, 0.2);
+}
+
+.myday-task-card {
+  border-left: 3px solid #6366f1;
+}
+
+.myday-task-desc {
+  font-weight: 400;
+  color: var(--text-faint);
+}
+
+/* Completeness bar */
+.completeness-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.completeness-track {
+  flex: 1;
+  height: 5px;
+  border-radius: 10px;
+  background: var(--bg-hover);
+  overflow: hidden;
+}
+
+.completeness-fill {
+  height: 100%;
+  border-radius: 10px;
+  transition: width 0.4s ease;
+}
+
+.completeness-pct {
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 32px;
+  text-align: right;
 }
