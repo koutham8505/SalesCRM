@@ -50,7 +50,13 @@ export default function App({ session, onLogout }) {
   const [filterOwner, setFilterOwner] = useState("");
   const [selectedIds, setSelectedIds] = useState([]);
   const [namePrompt, setNamePrompt] = useState("");
-  const [drillFilter, setDrillFilter] = useState(null); // null | 'demos' | 'proposals'
+  const [drillFilter, setDrillFilter] = useState(null);
+  // drillFilter types:
+  // leads: demos | proposals | not_contacted_24h | no_next_action
+  //        meetings_today | followups_today | overdue | pitch_decks
+  //        all_meetings | all_followups | all_leads
+  // activities: calls_today | calls_interested | calls_not_interested
+  //             calls_call_back | calls_wrong_number | calls_no_response
 
   const role = profile?.role || "Executive";
   const auth = { Authorization: `Bearer ${session?.access_token}`, "Content-Type": "application/json" };
@@ -110,7 +116,7 @@ export default function App({ session, onLogout }) {
   // Drill-down from dashboard KPI cards → Leads tab with preset filter
   const handleDrillDown = (type) => {
     setDrillFilter(type);
-    setView("leads");
+    setView("leads"); // always navigate to leads view; filter logic decides what to show
   };
 
   // Clear drill filter when user changes view manually
@@ -224,9 +230,26 @@ export default function App({ session, onLogout }) {
           <>
             {drillFilter && (
               <div className="drill-banner">
-                <span>
-                  {drillFilter === "demos" ? "🎬 Showing: Leads with Demo Fixed (Demo/Meeting stage)" : "📄 Showing: Leads where Proposal was Sent"}
-                </span>
+                <span>{
+                  drillFilter === "demos" ? "🎬 Showing: Leads with Demo Fixed (Demo/Meeting stage)" :
+                    drillFilter === "proposals" ? "📄 Showing: Leads where Proposal was Sent" :
+                      drillFilter === "not_contacted_24h" ? "🔴 Showing: New leads not contacted within 24 hours" :
+                        drillFilter === "no_next_action" ? "🎯 Showing: Active leads with no next action set" :
+                          drillFilter === "meetings_today" ? "📅 Showing: Leads with Meeting/Demo scheduled today" :
+                            drillFilter === "followups_today" ? "🔔 Showing: Leads with Follow-up due today" :
+                              drillFilter === "overdue" ? "⚠️ Showing: Overdue leads (past follow-up date)" :
+                                drillFilter === "pitch_decks" ? "📁 Showing: Leads where Pitch Deck/Brochure was Sent" :
+                                  drillFilter === "all_meetings" ? "📋 Showing: All leads with meetings scheduled" :
+                                    drillFilter === "all_followups" ? "🔔 Showing: All leads with follow-ups" :
+                                      drillFilter === "all_leads" ? "👥 Showing: All leads" :
+                                        drillFilter === "calls_today" ? "📞 Showing: Leads with calls logged today" :
+                                          drillFilter === "calls_interested" ? "✅ Showing: Leads marked Interested today" :
+                                            drillFilter === "calls_not_interested" ? "❌ Showing: Leads marked Not Interested today" :
+                                              drillFilter === "calls_call_back" ? "🔁 Showing: Leads marked Call Back today" :
+                                                drillFilter === "calls_wrong_number" ? "📵 Showing: Leads marked Wrong Number today" :
+                                                  drillFilter === "calls_no_response" ? "📭 Showing: Leads with No Response today" :
+                                                    `Showing filtered leads`
+                }</span>
                 <button className="drill-clear" onClick={() => setDrillFilter(null)}>✕ Clear filter</button>
               </div>
             )}

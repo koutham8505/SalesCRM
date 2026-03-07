@@ -611,6 +611,248 @@ button:disabled {
   color: #2563eb !important;
 }
 
+/* ── Generic KPI hover mixin (applies to ALL kpi-clickable cards) ── */
+.kpi-clickable:hover:not(:disabled),
+.kpi-clickable:focus-visible:not(:disabled) {
+  transform: translateY(-3px) scale(1.015);
+}
+
+.kpi-clickable:hover .kpi-cta,
+.kpi-clickable:focus-visible .kpi-cta {
+  opacity: 1;
+}
+
+/* ── Accent colour palette ── */
+/* Yellow — All Meetings */
+.kpi-yellow {
+  border-left: 4px solid #eab308;
+}
+
+.kpi-yellow:hover:not(:disabled),
+.kpi-yellow:focus-visible:not(:disabled) {
+  background: linear-gradient(135deg, #fefce8, #fef9c3);
+  border-color: #ca8a04;
+  box-shadow: 0 6px 20px rgba(234, 179, 8, 0.2);
+}
+
+.kpi-yellow .kpi-cta {
+  color: #a16207;
+}
+
+/* Green — All Follow-ups */
+.kpi-green {
+  border-left: 4px solid #22c55e;
+}
+
+.kpi-green:hover:not(:disabled),
+.kpi-green:focus-visible:not(:disabled) {
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  border-color: #16a34a;
+  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.2);
+}
+
+.kpi-green .kpi-cta {
+  color: #15803d;
+}
+
+/* Red — Overdue */
+.kpi-red {
+  border-left: 4px solid #ef4444;
+}
+
+.kpi-red:hover:not(:disabled),
+.kpi-red:focus-visible:not(:disabled) {
+  background: linear-gradient(135deg, #fef2f2, #fee2e2);
+  border-color: #dc2626;
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.2);
+}
+
+.kpi-red .kpi-cta {
+  color: #b91c1c;
+}
+
+/* Blue — All Leads */
+.kpi-blue {
+  border-left: 4px solid #3b82f6;
+}
+
+.kpi-blue:hover:not(:disabled),
+.kpi-blue:focus-visible:not(:disabled) {
+  background: linear-gradient(135deg, #eff6ff, #dbeafe);
+  border-color: #2563eb;
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.2);
+}
+
+.kpi-blue .kpi-cta {
+  color: #1d4ed8;
+}
+
+/* Purple — Meetings Today */
+.kpi-purple {
+  border-left: 4px solid #8b5cf6;
+}
+
+.kpi-purple:hover:not(:disabled),
+.kpi-purple:focus-visible:not(:disabled) {
+  background: linear-gradient(135deg, #f5f3ff, #ede9fe);
+  border-color: #7c3aed;
+  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.2);
+}
+
+.kpi-purple .kpi-cta {
+  color: #6d28d9;
+}
+
+/* Teal — Follow-ups Today */
+.kpi-teal {
+  border-left: 4px solid #14b8a6;
+}
+
+.kpi-teal:hover:not(:disabled),
+.kpi-teal:focus-visible:not(:disabled) {
+  background: linear-gradient(135deg, #f0fdfa, #ccfbf1);
+  border-color: #0d9488;
+  box-shadow: 0 6px 20px rgba(20, 184, 166, 0.2);
+}
+
+.kpi-teal .kpi-cta {
+  color: #0f766e;
+}
+
+/* Indigo — Calls Today */
+.kpi-indigo {
+  border-left: 4px solid #6366f1;
+}
+
+.kpi-indigo:hover:not(:disabled),
+.kpi-indigo:focus-visible:not(:disabled) {
+  background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+  border-color: #4f46e5;
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.2);
+}
+
+.kpi-indigo .kpi-cta {
+  color: #4338ca;
+}
+
+/* Violet — Pitch Decks */
+.kpi-violet {
+  border-left: 4px solid #a855f7;
+}
+
+.kpi-violet:hover:not(:disabled),
+.kpi-violet:focus-visible:not(:disabled) {
+  background: linear-gradient(135deg, #faf5ff, #f3e8ff);
+  border-color: #9333ea;
+  box-shadow: 0 6px 20px rgba(168, 85, 247, 0.2);
+}
+
+.kpi-violet .kpi-cta {
+  color: #7e22ce;
+}
+
+/* SLA danger — Not Contacted 24h */
+.kpi-sla-danger {
+  border-left: 4px solid #ef4444;
+  background: linear-gradient(135deg, #fef2f2, #fff8f8);
+}
+
+.kpi-sla-danger:hover:not(:disabled),
+.kpi-sla-danger:focus-visible:not(:disabled) {
+  background: linear-gradient(135deg, #fee2e2, #fecaca);
+  border-color: #dc2626;
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.22);
+}
+
+.kpi-sla-danger .kpi-cta {
+  color: #b91c1c;
+}
+
+/* SLA warning — No Next Action */
+.kpi-sla-warning {
+  border-left: 4px solid #f59e0b;
+  background: linear-gradient(135deg, #fffbeb, #fffdf6);
+}
+
+.kpi-sla-warning:hover:not(:disabled),
+.kpi-sla-warning:focus-visible:not(:disabled) {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  border-color: #d97706;
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.22);
+}
+
+.kpi-sla-warning .kpi-cta {
+  color: #b45309;
+}
+
+/* ── Call-outcome pill buttons ── */
+.kpi-pill-btn {
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+  user-select: none;
+}
+
+.kpi-pill-btn:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+.kpi-pill-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Dark mode overrides for new accents */
+[data-theme="dark"] .kpi-yellow:hover:not(:disabled) {
+  background: rgba(234, 179, 8, 0.12) !important;
+}
+
+[data-theme="dark"] .kpi-green:hover:not(:disabled) {
+  background: rgba(34, 197, 94, 0.12) !important;
+}
+
+[data-theme="dark"] .kpi-red:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.12) !important;
+}
+
+[data-theme="dark"] .kpi-blue:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 0.12) !important;
+}
+
+[data-theme="dark"] .kpi-purple:hover:not(:disabled) {
+  background: rgba(139, 92, 246, 0.12) !important;
+}
+
+[data-theme="dark"] .kpi-teal:hover:not(:disabled) {
+  background: rgba(20, 184, 166, 0.12) !important;
+}
+
+[data-theme="dark"] .kpi-indigo:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.12) !important;
+}
+
+[data-theme="dark"] .kpi-violet:hover:not(:disabled) {
+  background: rgba(168, 85, 247, 0.12) !important;
+}
+
+[data-theme="dark"] .kpi-sla-danger {
+  background: rgba(239, 68, 68, 0.08) !important;
+}
+
+[data-theme="dark"] .kpi-sla-danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.18) !important;
+}
+
+[data-theme="dark"] .kpi-sla-warning {
+  background: rgba(245, 158, 11, 0.08) !important;
+}
+
+[data-theme="dark"] .kpi-sla-warning:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.18) !important;
+}
+
 /* Drill-down banner */
 .drill-banner {
   display: flex;

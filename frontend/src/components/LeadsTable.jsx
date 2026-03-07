@@ -38,6 +38,9 @@ export default function LeadsTable({
         if (filterOwner) result = result.filter((l) => l.owner_id === filterOwner);
 
         // Drill-down filter from dashboard KPI cards
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const FINAL_STAGES = ["Won", "Lost"];
+
         if (drillFilter === "demos") {
             const DEMO_STATUSES = ["scheduled", "completed", "demo scheduled", "demo done"];
             result = result.filter((l) =>
@@ -45,8 +48,93 @@ export default function LeadsTable({
                 DEMO_STATUSES.includes((l.call_status || "").toLowerCase())
             );
         }
-        if (drillFilter === "proposals") {
+        else if (drillFilter === "proposals") {
             result = result.filter((l) => l.proposal_sent === true || l.proposal_sent === "Yes");
+        }
+        else if (drillFilter === "not_contacted_24h") {
+            const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+            result = result.filter((l) => {
+                const isNew = !l.stage || l.stage === "New";
+                const noFollowUp = !l.next_follow_up && !l.last_follow_up;
+                const leadDate = l.lead_date ? new Date(l.lead_date) : null;
+                const isOld = leadDate && leadDate < cutoff;
+                return isNew && noFollowUp && isOld;
+            });
+        }
+        else if (drillFilter === "no_next_action") {
+            result = result.filter((l) =>
+                !FINAL_STAGES.includes(l.stage) &&
+                !l.next_follow_up && !l.next_action_date
+            );
+        }
+        else if (drillFilter === "meetings_today") {
+            result = result.filter((l) =>
+                l.meeting_date?.slice(0, 10) === todayStr ||
+                l.demo_date?.slice(0, 10) === todayStr
+            );
+        }
+        else if (drillFilter === "followups_today") {
+            result = result.filter((l) => l.next_follow_up?.slice(0, 10) === todayStr);
+        }
+        else if (drillFilter === "overdue") {
+            result = result.filter((l) =>
+                l.next_follow_up &&
+                l.next_follow_up.slice(0, 10) < todayStr &&
+                !FINAL_STAGES.includes(l.stage)
+            );
+        }
+        else if (drillFilter === "pitch_decks") {
+            const DECK_STATUSES = ["sent", "viewed", "discussed"];
+            result = result.filter((l) =>
+                DECK_STATUSES.includes((l.pitch_deck_status || "").toLowerCase()) ||
+                !!l.pitch_deck_date || l.pitch_deck_sent === true || l.pitch_deck_sent === "Yes"
+            );
+        }
+        else if (drillFilter === "all_meetings") {
+            result = result.filter((l) => l.meeting_date || l.demo_date);
+        }
+        else if (drillFilter === "all_followups") {
+            result = result.filter((l) => l.next_follow_up || l.last_follow_up);
+        }
+        else if (drillFilter === "all_leads") {
+            // no extra filter — show all leads
+        }
+        // ── Call outcome drills — filter by call_status / last activity response ──
+        else if (drillFilter === "calls_today") {
+            result = result.filter((l) => l.last_activity_date?.slice(0, 10) === todayStr);
+        }
+        else if (drillFilter === "calls_interested") {
+            result = result.filter((l) =>
+                l.last_activity_date?.slice(0, 10) === todayStr &&
+                (l.call_status || "").toLowerCase().includes("interested") &&
+                !(l.call_status || "").toLowerCase().includes("not")
+            );
+        }
+        else if (drillFilter === "calls_not_interested") {
+            result = result.filter((l) =>
+                l.last_activity_date?.slice(0, 10) === todayStr &&
+                (l.call_status || "").toLowerCase().includes("not interested")
+            );
+        }
+        else if (drillFilter === "calls_call_back") {
+            result = result.filter((l) =>
+                l.last_activity_date?.slice(0, 10) === todayStr &&
+                (l.call_status || "").toLowerCase().includes("call back")
+            );
+        }
+        else if (drillFilter === "calls_wrong_number") {
+            result = result.filter((l) =>
+                l.last_activity_date?.slice(0, 10) === todayStr &&
+                (l.call_status || "").toLowerCase().includes("wrong")
+            );
+        }
+        else if (drillFilter === "calls_no_response") {
+            result = result.filter((l) =>
+                l.last_activity_date?.slice(0, 10) === todayStr &&
+                ((l.call_status || "").toLowerCase().includes("no response") ||
+                    (l.call_status || "").toLowerCase().includes("no answer") ||
+                    (l.call_status || "").toLowerCase() === "")
+            );
         }
 
         return result;

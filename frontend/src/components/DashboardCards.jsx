@@ -1,6 +1,4 @@
 // D:\SalesCRM\frontend\src\components\DashboardCards.jsx
-// All dashboard numbers come exclusively from /api/dashboard/metrics
-// No local mocks, no hardcoded values.
 import { useState, useEffect } from "react";
 
 const API = `${import.meta.env.VITE_API_URL || "http://localhost:3000"}/api/dashboard/metrics`;
@@ -10,29 +8,16 @@ export default function DashboardCards({ leads, role, session, showMetrics = tru
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // Prefix label by role
     const prefix = role === "Executive" ? "My" : role === "TeamLead" ? "Team" : role === "Manager" ? "Dept" : "All";
 
     const loadMetrics = () => {
         if (!session?.access_token) { setLoading(false); return; }
         setLoading(true);
         setError(null);
-        fetch(API, {
-            headers: {
-                Authorization: `Bearer ${session.access_token}`,
-                "Content-Type": "application/json",
-            },
-        })
+        fetch(API, { headers: { Authorization: `Bearer ${session.access_token}`, "Content-Type": "application/json" } })
             .then(async (r) => {
-                if (r.status === 401) {
-                    setError("Session expired. Please log in again.");
-                    onLogout?.();
-                    return null;
-                }
-                if (!r.ok) {
-                    const body = await r.json().catch(() => ({}));
-                    throw new Error(body.message || `Server error (${r.status})`);
-                }
+                if (r.status === 401) { setError("Session expired."); onLogout?.(); return null; }
+                if (!r.ok) { const b = await r.json().catch(() => ({})); throw new Error(b.message || `Server error (${r.status})`); }
                 return r.json();
             })
             .then((data) => { if (data) setMetrics(data); })
@@ -40,27 +25,38 @@ export default function DashboardCards({ leads, role, session, showMetrics = tru
             .finally(() => setLoading(false));
     };
 
-    // Fetch metrics from backend whenever the session changes
     useEffect(() => { loadMetrics(); }, [session?.access_token]);
 
-    // Outcome pill config
-    const callPills = [
-        { key: "calls_today_interested", label: "Interested", color: "pill-green" },
-        { key: "calls_today_not_interested", label: "Not Interested", color: "pill-red" },
-        { key: "calls_today_call_back", label: "Call Back", color: "pill-amber" },
-        { key: "calls_today_wrong_number", label: "Wrong Number", color: "pill-gray" },
-        { key: "calls_today_no_response", label: "No Response", color: "pill-slate" },
-    ];
-
     const m = metrics || {};
+    const drill = (type) => () => onDrillDown?.(type);
 
-    // If the server returned an error object as metrics (old bug guard)
-    const isValidMetrics = metrics && typeof metrics.all_leads_count === "number";
+    // ── Shared card renderer ──────────────────────────────────────────────
+    const KpiCard = ({ drillType, icon, label, value, subtitle, accentClass, countClass, disabled: forceDisabled }) => (
+        <button
+            className={`dashboard-card kpi-clickable ${accentClass || ""}`}
+            onClick={drill(drillType)}
+            title={`View ${label} →`}
+            disabled={loading || forceDisabled}
+        >
+            {icon && <div className="kpi-icon">{icon}</div>}
+            <div className="dash-title">{label}</div>
+            <div className={`dash-count ${countClass || ""}`}>{loading ? "…" : value}</div>
+            {subtitle && <div className="dash-subtitle">{subtitle}</div>}
+            <div className="kpi-cta">View leads →</div>
+        </button>
+    );
 
-    // Drill-down handler — navigates to leads list with a preset filter
-    const handleDrillDown = (drillType) => {
-        onDrillDown?.(drillType);
-    };
+    const CallPillCard = ({ drillType, label, value, pillClass }) => (
+        <button
+            className={`call-pill ${pillClass} kpi-pill-btn`}
+            onClick={drill(drillType)}
+            title={`View ${label} calls`}
+            disabled={loading}
+        >
+            <span className="pill-count">{loading ? "…" : value}</span>
+            <span className="pill-label">{label}</span>
+        </button>
+    );
 
     return (
         <div className="dashboard-container">
@@ -71,107 +67,77 @@ export default function DashboardCards({ leads, role, session, showMetrics = tru
                     <button onClick={loadMetrics} className="dash-retry-btn">Retry</button>
                 </div>
             )}
-            {/* ─── Row 1: Summary cards ─── */}
+
+            {/* ─── Row 1: Summary ─── */}
             <div className="dashboard-row">
-                <div className="dashboard-card meetings">
-                    <div className="dash-title">{prefix} Meetings</div>
-                    <div className="dash-count">
-                        {loading ? "…" : (m.all_meetings ?? 0)}
-                    </div>
-                </div>
-                <div className="dashboard-card followups">
-                    <div className="dash-title">{prefix} Follow-ups</div>
-                    <div className="dash-count">
-                        {loading ? "…" : (m.all_followups ?? 0)}
-                    </div>
-                </div>
-                <div className="dashboard-card overdue">
-                    <div className="dash-title">{prefix} Overdue</div>
-                    <div className="dash-count">
-                        {loading ? "…" : (m.all_overdue ?? 0)}
-                    </div>
-                </div>
-                <div className="dashboard-card total">
-                    <div className="dash-title">{prefix} Leads</div>
-                    <div className="dash-count">
-                        {loading ? "…" : (m.all_leads_count ?? 0)}
-                    </div>
-                </div>
+                <KpiCard drillType="all_meetings" icon="📋" label={`${prefix} Meetings`} value={m.all_meetings ?? 0} accentClass="kpi-yellow" />
+                <KpiCard drillType="all_followups" icon="🔔" label={`${prefix} Follow-ups`} value={m.all_followups ?? 0} accentClass="kpi-green" />
+                <KpiCard drillType="overdue" icon="⚠️" label={`${prefix} Overdue`} value={m.all_overdue ?? 0} accentClass="kpi-red" />
+                <KpiCard drillType="all_leads" icon="👥" label={`${prefix} Leads`} value={m.all_leads_count ?? 0} accentClass="kpi-blue" />
             </div>
 
-            {/* ─── Row 1.5: Phase 1 SLA Alert Cards ─── */}
+            {/* ─── Row 2: SLA + KPI ─── */}
             <div className="dashboard-row">
-                <div className="dashboard-card sla-card sla-danger">
-                    <div className="dash-title">⚠️ Not Contacted 24h</div>
-                    <div className="dash-count sla-danger-count">
-                        {loading ? "…" : (m.not_contacted_24h ?? 0)}
-                    </div>
-                    <div className="dash-subtitle">New leads waiting &gt;24h</div>
-                </div>
-                <div className="dashboard-card sla-card sla-warning">
-                    <div className="dash-title">🎯 No Next Action</div>
-                    <div className="dash-count sla-warning-count">
-                        {loading ? "…" : (m.no_next_action ?? 0)}
-                    </div>
-                    <div className="dash-subtitle">Active leads without a next step</div>
-                </div>
-
-                {/* ── NEW: Demos Fixed (clickable) ── */}
-                <button
-                    className="dashboard-card kpi-clickable kpi-demos"
-                    onClick={() => handleDrillDown("demos")}
-                    title="Click to view all leads with demos scheduled/completed"
-                    disabled={loading}
-                >
-                    <div className="kpi-icon">🎬</div>
-                    <div className="dash-title">DEMOS FIXED</div>
-                    <div className="dash-count kpi-demos-count">
-                        {loading ? "…" : (m.demos_fixed ?? 0)}
-                    </div>
-                    <div className="dash-subtitle">Demo/Meeting stage leads</div>
-                    <div className="kpi-cta">View leads →</div>
-                </button>
-
-                {/* ── NEW: Proposals Sent (clickable) ── */}
-                <button
-                    className="dashboard-card kpi-clickable kpi-proposals"
-                    onClick={() => handleDrillDown("proposals")}
-                    title="Click to view all leads where proposal was sent"
-                    disabled={loading}
-                >
-                    <div className="kpi-icon">📄</div>
-                    <div className="dash-title">PROPOSALS SENT</div>
-                    <div className="dash-count kpi-proposals-count">
-                        {loading ? "…" : (m.proposals_sent ?? 0)}
-                    </div>
-                    <div className="dash-subtitle">Leads with proposal sent</div>
-                    <div className="kpi-cta">View leads →</div>
-                </button>
+                <KpiCard
+                    drillType="not_contacted_24h" icon="🔴"
+                    label="Not Contacted 24h"
+                    value={m.not_contacted_24h ?? 0}
+                    subtitle="New leads waiting >24h"
+                    accentClass="kpi-sla-danger"
+                    countClass="sla-danger-count"
+                />
+                <KpiCard
+                    drillType="no_next_action" icon="🎯"
+                    label="No Next Action"
+                    value={m.no_next_action ?? 0}
+                    subtitle="Active leads without a next step"
+                    accentClass="kpi-sla-warning"
+                    countClass="sla-warning-count"
+                />
+                <KpiCard
+                    drillType="demos" icon="🎬"
+                    label="DEMOS FIXED"
+                    value={m.demos_fixed ?? 0}
+                    subtitle="Demo/Meeting stage leads"
+                    accentClass="kpi-demos"
+                    countClass="kpi-demos-count"
+                />
+                <KpiCard
+                    drillType="proposals" icon="📄"
+                    label="PROPOSALS SENT"
+                    value={m.proposals_sent ?? 0}
+                    subtitle="Leads with proposal sent"
+                    accentClass="kpi-proposals"
+                    countClass="kpi-proposals-count"
+                />
             </div>
 
-            {/* ─── Row 2: Today's Activity ─── */}
+            {/* ─── Row 3: Today ─── */}
             <div className="dashboard-row today-activity-row">
-                <div className="dashboard-card today-meetings">
-                    <div className="dash-title">📅 Meetings Today</div>
-                    <div className="dash-count">
-                        {loading ? "…" : (m.meetings_today ?? 0)}
-                    </div>
-                </div>
-                <div className="dashboard-card today-followups">
-                    <div className="dash-title">🔔 Follow-ups Today</div>
-                    <div className="dash-count">
-                        {loading ? "…" : (m.followups_today ?? 0)}
-                    </div>
-                </div>
-                <div className="dashboard-card today-overdue">
-                    <div className="dash-title">⚠️ Overdue</div>
-                    <div className="dash-count">
-                        {loading ? "…" : (m.all_overdue ?? 0)}
-                    </div>
-                </div>
+                <KpiCard
+                    drillType="meetings_today" icon="📅"
+                    label="Meetings Today"
+                    value={m.meetings_today ?? 0}
+                    subtitle="Demos & meetings scheduled today"
+                    accentClass="kpi-purple"
+                />
+                <KpiCard
+                    drillType="followups_today" icon="🔔"
+                    label="Follow-ups Today"
+                    value={m.followups_today ?? 0}
+                    subtitle="Leads to follow up today"
+                    accentClass="kpi-teal"
+                />
+                <KpiCard
+                    drillType="overdue" icon="⚠️"
+                    label="Overdue"
+                    value={m.all_overdue ?? 0}
+                    subtitle="Past due follow-up date"
+                    accentClass="kpi-red"
+                />
             </div>
 
-            {/* ─── Calls Today (Dashboard tab only) ─── */}
+            {/* ─── Calls Today ─── */}
             {showMetrics && (
                 <div className="dashboard-section">
                     <h3 className="section-title">📞 Calls Today</h3>
@@ -182,25 +148,27 @@ export default function DashboardCards({ leads, role, session, showMetrics = tru
                     ) : (
                         <>
                             <div className="dashboard-row calls-today-row">
-                                <div className="dashboard-card calls-total">
-                                    <div className="dash-title">{prefix} Calls Today</div>
-                                    <div className="dash-count">{m.calls_today_total ?? 0}</div>
-                                </div>
+                                <KpiCard
+                                    drillType="calls_today" icon="📞"
+                                    label={`${prefix} Calls Today`}
+                                    value={m.calls_today_total ?? 0}
+                                    subtitle="All calls logged today"
+                                    accentClass="kpi-indigo"
+                                />
                             </div>
                             <div className="call-pills-row">
-                                {callPills.map((p) => (
-                                    <div key={p.key} className={`call-pill ${p.color}`}>
-                                        <span className="pill-count">{m[p.key] ?? 0}</span>
-                                        <span className="pill-label">{p.label}</span>
-                                    </div>
-                                ))}
+                                <CallPillCard drillType="calls_interested" label="Interested" value={m.calls_today_interested ?? 0} pillClass="pill-green" />
+                                <CallPillCard drillType="calls_not_interested" label="Not Interested" value={m.calls_today_not_interested ?? 0} pillClass="pill-red" />
+                                <CallPillCard drillType="calls_call_back" label="Call Back" value={m.calls_today_call_back ?? 0} pillClass="pill-amber" />
+                                <CallPillCard drillType="calls_wrong_number" label="Wrong Number" value={m.calls_today_wrong_number ?? 0} pillClass="pill-gray" />
+                                <CallPillCard drillType="calls_no_response" label="No Response" value={m.calls_today_no_response ?? 0} pillClass="pill-slate" />
                             </div>
                         </>
                     )}
                 </div>
             )}
 
-            {/* ─── Outreach Summary (Dashboard tab only) ─── */}
+            {/* ─── Outreach Summary ─── */}
             {showMetrics && (
                 <div className="dashboard-section">
                     <h3 className="section-title">📤 Outreach Summary</h3>
@@ -210,14 +178,15 @@ export default function DashboardCards({ leads, role, session, showMetrics = tru
                         </div>
                     ) : (
                         <div className="dashboard-row outreach-row">
-                            <div className="dashboard-card outreach-pitch">
-                                <div className="dash-title">Pitch Decks Sent</div>
-                                <div className="dash-count">
-                                    {m.pitch_decks_sent_today ?? 0}{" "}
-                                    <span className="dash-total">/ {m.pitch_decks_sent_total ?? 0} total</span>
-                                </div>
-                            </div>
+                            <KpiCard
+                                drillType="pitch_decks" icon="📁"
+                                label="Pitch Decks Sent"
+                                value={<>{m.pitch_decks_sent_today ?? 0} <span className="dash-total">/ {m.pitch_decks_sent_total ?? 0} total</span></>}
+                                subtitle="Brochures/decks sent"
+                                accentClass="kpi-violet"
+                            />
                             <div className="dashboard-card outreach-email">
+                                <div className="kpi-icon">✉️</div>
                                 <div className="dash-title">Emails Sent</div>
                                 <div className="dash-count">
                                     {m.emails_sent_today ?? 0}{" "}
