@@ -28,7 +28,7 @@ const ALL_LEAD_FIELDS = [
 export default function ActionBar({
     role, featureFlags, search, onSearchChange, onNewLead, onImport,
     onDownloadTemplate, filterTeam, onFilterTeamChange, filterOwner, onFilterOwnerChange,
-    teams, owners, selectedIds, leads,
+    teams, owners, selectedIds, leads, onBroadcast,
 }) {
     const [showImport, setShowImport] = useState(false);
 
@@ -94,6 +94,10 @@ export default function ActionBar({
 
                 <button onClick={handleDownloadTemplate} className="btn-secondary" title="Download blank import template">
                     📋 Template
+                </button>
+
+                <button onClick={onBroadcast} className="btn-whatsapp-broadcast" title="Send WhatsApp message to multiple leads">
+                    📣 WA Broadcast
                 </button>
 
                 <input

@@ -22,6 +22,7 @@ import TemplatesPage from "./components/TemplatesPage";
 import ApprovalsPanel from "./components/ApprovalsPanel";
 import CalendarView from "./components/CalendarView";
 import WinLossAnalysis from "./components/WinLossAnalysis";
+import WhatsAppBroadcast from "./components/WhatsAppBroadcast";
 import "./App.css";
 
 const BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
@@ -53,6 +54,7 @@ export default function App({ session, onLogout }) {
   const [selectedIds, setSelectedIds] = useState([]);
   const [namePrompt, setNamePrompt] = useState("");
   const [drillFilter, setDrillFilter] = useState(null);
+  const [showBroadcast, setShowBroadcast] = useState(false);
   // drillFilter types:
   // leads: demos | proposals | not_contacted_24h | no_next_action
   //        meetings_today | followups_today | overdue | pitch_decks
@@ -273,6 +275,7 @@ export default function App({ session, onLogout }) {
               filterOwner={filterOwner} onFilterOwnerChange={setFilterOwner}
               teams={teams} owners={owners} selectedIds={selectedIds}
               leads={leads}
+              onBroadcast={() => setShowBroadcast(true)}
             />
             {showForm && (
               <LeadForm
@@ -289,6 +292,13 @@ export default function App({ session, onLogout }) {
               onDelete={handleDelete} onView={(l) => setViewLead(l)}
               drillFilter={drillFilter}
             />
+            {showBroadcast && (
+              <WhatsAppBroadcast
+                leads={leads}
+                profile={profile}
+                onClose={() => setShowBroadcast(false)}
+              />
+            )}
           </>
         );
     }
