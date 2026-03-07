@@ -23,6 +23,10 @@ import ApprovalsPanel from "./components/ApprovalsPanel";
 import CalendarView from "./components/CalendarView";
 import WinLossAnalysis from "./components/WinLossAnalysis";
 import WhatsAppBroadcast from "./components/WhatsAppBroadcast";
+import AnnouncementBanner from "./components/AnnouncementBanner";
+import AnnouncementsPanel from "./components/AnnouncementsPanel";
+import RemindersPage from "./components/RemindersPage";
+import { useFollowUpNotifications } from "./hooks/useFollowUpNotifications";
 import "./App.css";
 
 const BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
@@ -55,6 +59,9 @@ export default function App({ session, onLogout }) {
   const [namePrompt, setNamePrompt] = useState("");
   const [drillFilter, setDrillFilter] = useState(null);
   const [showBroadcast, setShowBroadcast] = useState(false);
+
+  // 🔔 Browser push notifications for due follow-ups
+  useFollowUpNotifications(leads, setView);
   // drillFilter types:
   // leads: demos | proposals | not_contacted_24h | no_next_action
   //        meetings_today | followups_today | overdue | pitch_decks
@@ -219,6 +226,10 @@ export default function App({ session, onLogout }) {
         return <CalendarView leads={leads} onViewLead={(l) => setViewLead(l)} />;
       case "win_loss":
         return <WinLossAnalysis leads={leads} />;
+      case "announcements_mgmt":
+        return <AnnouncementsPanel token={session?.access_token} role={role} />;
+      case "reminders":
+        return <RemindersPage token={session?.access_token} role={role} />;
       case "reports":
         return (
           <>
@@ -229,6 +240,7 @@ export default function App({ session, onLogout }) {
       case "dashboard":
         return (
           <>
+            <AnnouncementBanner token={session?.access_token} />
             <DashboardCards leads={leads} role={role} session={session} onLogout={onLogout} onDrillDown={handleDrillDown} />
             <div className="phase2-analytics">
               <ConversionFunnel token={session?.access_token} />

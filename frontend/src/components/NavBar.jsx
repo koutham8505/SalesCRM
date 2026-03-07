@@ -62,9 +62,13 @@ export default function NavBar({ profile, currentView, onNavigate, onLogout, ses
                             <span className={`role-badge role-${profile?.role?.toLowerCase()}`}>{profile?.role}</span>
                         </div>
                         <div className="nav-dropdown-divider" />
-                        <button className="nav-dropdown-item" onClick={() => { onNavigate("profile"); setMenuOpen(false); }}>My Profile</button>
+                        <button className="nav-dropdown-item" onClick={() => { onNavigate("profile"); setMenuOpen(false); }}>👤 My Profile</button>
+                        {["Admin", "Manager"].includes(profile?.role) && (<>
+                            <button className="nav-dropdown-item" onClick={() => { onNavigate("announcements_mgmt"); setMenuOpen(false); }}>📢 Announcements</button>
+                            <button className="nav-dropdown-item" onClick={() => { onNavigate("reminders"); setMenuOpen(false); }}>🔁 Reminders Setup</button>
+                        </>)}
                         {profile?.role === "Admin" && (
-                            <button className="nav-dropdown-item" onClick={() => { onNavigate("admin"); setMenuOpen(false); }}>Admin Panel</button>
+                            <button className="nav-dropdown-item" onClick={() => { onNavigate("admin"); setMenuOpen(false); }}>⚙️ Admin Panel</button>
                         )}
                         <button className="nav-dropdown-item" onClick={() => { toggleTheme(); setMenuOpen(false); }}>
                             {darkMode ? "☀️ Light Mode" : "🌙 Dark Mode"}
