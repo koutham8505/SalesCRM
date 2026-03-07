@@ -263,7 +263,13 @@ export default function LeadsTable({
                                                 <button
                                                     className="btn-sm btn-icon"
                                                     title={`Email ${lead.email}`}
-                                                    onClick={(e) => { e.stopPropagation(); window.open(`mailto:${lead.email}`, "_self"); }}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        window.open(
+                                                            `https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(lead.email)}&su=${encodeURIComponent(`Following up – ${lead.institution_name || lead.lead_name || ""}`)}&body=${encodeURIComponent(`Dear ${lead.lead_name || ""},\n\nI hope you are doing well. I am reaching out regarding our EdTech solution.\n\nLooking forward to connecting.\n\nBest regards`)}`,
+                                                            "_blank"
+                                                        );
+                                                    }}
                                                 >✉️</button>
                                             )}
                                             {(lead.whatsapp || lead.phone) && (
