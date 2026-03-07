@@ -147,7 +147,25 @@ export default function LeadsTable({
             <h2>Leads ({filtered.length})
                 {drillFilter && (
                     <span className="drill-count-label">
-                        {drillFilter === "demos" ? " — Demo Fixed" : " — Proposal Sent"}
+                        {{
+                            demos: " — Demo Fixed",
+                            proposals: " — Proposal Sent",
+                            not_contacted_24h: " — Not Contacted 24h",
+                            no_next_action: " — No Next Action",
+                            meetings_today: " — Meetings Today",
+                            followups_today: " — Follow-ups Today",
+                            overdue: " — Overdue",
+                            pitch_decks: " — Pitch Decks Sent",
+                            all_meetings: " — All Meetings",
+                            all_followups: " — All Follow-ups",
+                            all_leads: " — All Leads",
+                            calls_today: " — Calls Today",
+                            calls_interested: " — Interested",
+                            calls_not_interested: " — Not Interested",
+                            calls_call_back: " — Call Back",
+                            calls_wrong_number: " — Wrong Number",
+                            calls_no_response: " — No Response",
+                        }[drillFilter] || ""}
                     </span>
                 )}
             </h2>
