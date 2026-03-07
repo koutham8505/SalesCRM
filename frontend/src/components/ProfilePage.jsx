@@ -1,7 +1,7 @@
 // D:\SalesCRM\frontend\src\components\ProfilePage.jsx
 import { useState, useEffect } from "react";
 
-const API_BASE = "http://localhost:3000/api/profile";
+const API_BASE = `${import.meta.env.VITE_API_URL || "http://localhost:3000"}/api/profile`;
 
 export default function ProfilePage({ profile, session, onProfileUpdated, showToast }) {
     const [tab, setTab] = useState("profile");

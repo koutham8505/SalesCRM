@@ -15,7 +15,24 @@ const targetsRoutes = require("../routes/targets.routes");
 
 const app = express();
 
-app.use(cors());
+const allowedOrigins = [
+    process.env.FRONTEND_URL,          // e.g. https://your-app.vercel.app
+    "http://localhost:5173",            // Vite local dev
+    "http://localhost:3000",
+].filter(Boolean);
+
+app.use(
+    cors({
+        origin: (origin, callback) => {
+            // Allow requests with no origin (curl, Postman, server-to-server)
+            if (!origin) return callback(null, true);
+            if (allowedOrigins.includes(origin)) return callback(null, true);
+            callback(new Error(`CORS: origin ${origin} not allowed`));
+        },
+        credentials: true,
+    })
+);
+
 app.use(express.json({ limit: "10mb" }));
 
 app.get("/health", (req, res) => res.json({ ok: true }));

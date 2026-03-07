@@ -1,7 +1,7 @@
 // D:\SalesCRM\frontend\src\components\TasksPanel.jsx
 import { useState, useEffect, useCallback } from "react";
 
-const API = "http://localhost:3000/api/tasks";
+const API = `${import.meta.env.VITE_API_URL || "http://localhost:3000"}/api/tasks`;
 
 export default function TasksPanel({ session, showToast }) {
     const [tasks, setTasks] = useState([]);

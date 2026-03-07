@@ -2,7 +2,7 @@
 import { useState } from "react";
 import "./auth.css";
 
-const API_URL = "http://localhost:3000/api/auth/register";
+const API_URL = `${import.meta.env.VITE_API_URL || "http://localhost:3000"}/api/auth/register`;
 const ROLES = ["Admin", "Manager", "TeamLead", "Executive"];
 
 export default function Register({ onSwitchToLogin }) {

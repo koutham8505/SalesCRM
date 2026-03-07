@@ -1,7 +1,7 @@
 // D:\SalesCRM\frontend\src\components\TargetsPanel.jsx
 import { useState, useEffect, useCallback } from "react";
 
-const TARGETS_API = "http://localhost:3000/api/targets";
+const TARGETS_API = `${import.meta.env.VITE_API_URL || "http://localhost:3000"}/api/targets`;
 
 export default function TargetsPanel({ session, profile, showToast }) {
     const [targets, setTargets] = useState([]);

@@ -1,7 +1,7 @@
 // D:\SalesCRM\frontend\src\components\AdminPanel.jsx
 import { useState, useEffect, useCallback } from "react";
 
-const ADMIN_API = "http://localhost:3000/api/admin";
+const ADMIN_API = `${import.meta.env.VITE_API_URL || "http://localhost:3000"}/api/admin`;
 
 export default function AdminPanel({ session, showToast }) {
     const [tab, setTab] = useState("users");

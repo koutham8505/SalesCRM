@@ -17,7 +17,8 @@ import AdminPanel from "./components/AdminPanel";
 import Toast from "./components/Toast";
 import "./App.css";
 
-const API_URL = "http://localhost:3000/api/leads";
+const BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const API_URL = `${BASE}/api/leads`;
 
 const hasFeature = (profile, feature) => {
   if (!profile) return false;
@@ -53,7 +54,7 @@ export default function App({ session, onLogout }) {
   const handleSetName = async () => {
     if (!namePrompt.trim()) return notify("Please enter your name", "error");
     try {
-      const r = await fetch("http://localhost:3000/api/profile/me", { method: "PUT", headers: auth, body: JSON.stringify({ full_name: namePrompt.trim() }) });
+      const r = await fetch(`${BASE}/api/profile/me`, { method: "PUT", headers: auth, body: JSON.stringify({ full_name: namePrompt.trim() }) });
       if (!r.ok) throw new Error((await r.json()).message);
       notify("Name updated!");
       fetchLeads(); // re-fetch to get updated profile

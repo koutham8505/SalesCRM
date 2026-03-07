@@ -1,7 +1,7 @@
 // D:\SalesCRM\frontend\src\components\LeadDetail.jsx
 import { useState, useEffect } from "react";
 
-const API_BASE = "http://localhost:3000/api";
+const API_BASE = `${import.meta.env.VITE_API_URL || "http://localhost:3000"}/api`;
 const typeIcons = { CALL: "📞", EMAIL: "✉️", MEETING: "🤝", NOTE: "📝", PITCH_DECK: "📊" };
 
 export default function LeadDetail({ lead, session, profile, onClose, showToast }) {
