@@ -27,7 +27,7 @@ exports.getTasks = async (req, res) => {
 // POST /api/tasks
 exports.createTask = async (req, res) => {
     try {
-        const { title, description, due_date, lead_id } = req.body;
+        const { title, description, due_date, lead_id, lead_name, assigned_to, assigned_to_name } = req.body;
         if (!title) return res.status(400).json({ message: "title is required" });
 
         const { data, error } = await supabase
@@ -37,13 +37,30 @@ exports.createTask = async (req, res) => {
                 description: description || "",
                 due_date: due_date || null,
                 lead_id: lead_id || null,
+                lead_name: lead_name || null,
                 owner_id: req.user.id,
                 team: req.user.team || null,
                 status: "Pending",
+                assigned_to: assigned_to || null,
+                assigned_to_name: assigned_to_name || null,
             }])
             .select();
 
         if (error) throw error;
+
+        // Notify assigned user if it's not self-assignment
+        if (assigned_to && assigned_to !== req.user.id) {
+            try {
+                await require("../config/supabase").from("notifications").insert([{
+                    user_id: assigned_to,
+                    type: "task_assigned",
+                    title: `📌 Task assigned to you`,
+                    body: `${req.user.full_name || req.user.email} assigned you: "${title}"${lead_name ? ` (${lead_name})` : ""}`,
+                    lead_id: lead_id || null,
+                }]);
+            } catch { /* non-fatal */ }
+        }
+
         res.status(201).json(data[0]);
     } catch (err) {
         console.error("createTask error:", err);

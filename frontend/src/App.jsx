@@ -19,6 +19,7 @@ import ConversionFunnel from "./components/ConversionFunnel";
 import SourcePerformance from "./components/SourcePerformance";
 import TeamProductivity from "./components/TeamProductivity";
 import TemplatesPage from "./components/TemplatesPage";
+import ApprovalsPanel from "./components/ApprovalsPanel";
 import "./App.css";
 
 const BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
@@ -183,6 +184,8 @@ export default function App({ session, onLogout }) {
         return role === "Admin" ? <AdminPanel session={session} showToast={notify} /> : null;
       case "templates":
         return <TemplatesPage session={session} role={role} />;
+      case "approvals":
+        return <ApprovalsPanel session={session} role={role} showToast={notify} />;
       case "today":
         return <TodayView leads={leads} tasks={tasks} role={role} token={session?.access_token} onViewLead={(l) => setViewLead(l)} onTaskUpdate={fetchTasks} />;
       case "tasks":
@@ -238,7 +241,7 @@ export default function App({ session, onLogout }) {
   if (loading && leads.length === 0) {
     return (
       <div className="app-shell">
-        <NavBar profile={profile} currentView={view} onNavigate={setView} onLogout={onLogout} />
+        <NavBar profile={profile} currentView={view} onNavigate={setView} onLogout={onLogout} session={session} />
         <div className="app-container"><div className="loading-state">Loading...</div></div>
       </div>
     );
@@ -246,7 +249,13 @@ export default function App({ session, onLogout }) {
 
   return (
     <div className="app-shell">
-      <NavBar profile={profile} currentView={view} onNavigate={setView} onLogout={onLogout} />
+      <NavBar profile={profile} currentView={view} onNavigate={setView} onLogout={onLogout}
+        session={session}
+        onNotifLeadClick={(leadId) => {
+          const found = leads.find((l) => l.id === leadId);
+          if (found) setViewLead(found);
+        }}
+      />
       {isPlaceholderName && (
         <div className="name-prompt-banner">
           <span>👋 Welcome! Please set your full name:</span>
@@ -255,7 +264,7 @@ export default function App({ session, onLogout }) {
         </div>
       )}
       <div className="app-container">{renderContent()}</div>
-      {viewLead && <LeadDetail lead={viewLead} session={session} profile={profile} onClose={() => setViewLead(null)} showToast={notify} />}
+      {viewLead && <LeadDetail lead={viewLead} session={session} profile={profile} owners={owners} onClose={() => setViewLead(null)} showToast={notify} />}
       <Toast message={toast.message} type={toast.type} onClose={() => setToast({ message: "", type: "success" })} />
     </div>
   );

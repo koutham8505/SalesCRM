@@ -12,26 +12,32 @@ const STAGE_COLORS = {
 
 const TAG_COLORS = ["#dbeafe", "#fce7f3", "#d1fae5", "#fef3c7", "#e0e7ff", "#fee2e2", "#ccfbf1", "#fef9c3"];
 
-export default function LeadDetail({ lead, session, profile, onClose, showToast }) {
+export default function LeadDetail({ lead, session, profile, onClose, showToast, owners }) {
     const [tab, setTab] = useState("details");
     const [activities, setActivities] = useState([]);
     const [notes, setNotes] = useState([]);
+    const [approvals, setApprovals] = useState([]);
     const [actForm, setActForm] = useState({ type: "NOTE", description: "", outcome: "", duration: "" });
     const [noteText, setNoteText] = useState("");
     const [saving, setSaving] = useState(false);
     const [savingNote, setSavingNote] = useState(false);
     const [templates, setTemplates] = useState([]);
     const [showTemplates, setShowTemplates] = useState(false);
+    const [approvalForm, setApprovalForm] = useState({ request_type: "discount", description: "", amount: "" });
+    const [savingApproval, setSavingApproval] = useState(false);
+    const [taskForm, setTaskForm] = useState({ title: "", description: "", due_date: "", assigned_to: "", assigned_to_name: "" });
+    const [savingTask, setSavingTask] = useState(false);
 
     const auth = { Authorization: `Bearer ${session?.access_token}`, "Content-Type": "application/json" };
 
     useEffect(() => {
-        if (lead?.id) { fetchActivities(); fetchNotes(); }
+        if (lead?.id) { fetchActivities(); fetchNotes(); fetchLeadApprovals(); }
     }, [lead?.id]);
 
     useEffect(() => {
         if (tab === "notes") fetchNotes();
         if (tab === "timeline") fetchActivities();
+        if (tab === "approvals") fetchLeadApprovals();
     }, [tab]);
 
     const fetchActivities = async () => {
@@ -45,6 +51,16 @@ export default function LeadDetail({ lead, session, profile, onClose, showToast 
         try {
             const res = await fetch(`${API_BASE}/leads/${lead.id}/notes`, { headers: auth });
             if (res.ok) setNotes(await res.json());
+        } catch { }
+    };
+
+    const fetchLeadApprovals = async () => {
+        try {
+            const res = await fetch(`${API_BASE}/approvals`, { headers: auth });
+            if (res.ok) {
+                const all = await res.json();
+                setApprovals(all.filter((a) => a.lead_id === lead.id));
+            }
         } catch { }
     };
 
@@ -103,6 +119,46 @@ export default function LeadDetail({ lead, session, profile, onClose, showToast 
         const subject = encodeURIComponent(`Introduction about our services`);
         const body = encodeURIComponent(`Hi ${lead.lead_name || ""},\n\nI wanted to reach out regarding...\n\nBest regards,\n${profile?.full_name || ""}`);
         window.open(`mailto:${lead.email}?subject=${subject}&body=${body}`, "_self");
+    };
+
+    const handleRequestApproval = async () => {
+        if (!approvalForm.description.trim()) return showToast("Description required", "error");
+        try {
+            setSavingApproval(true);
+            const r = await fetch(`${API_BASE}/approvals`, {
+                method: "POST", headers: auth,
+                body: JSON.stringify({
+                    lead_id: lead.id,
+                    lead_name: lead.lead_name,
+                    ...approvalForm,
+                    amount: approvalForm.amount ? parseFloat(approvalForm.amount) : undefined,
+                }),
+            });
+            if (!r.ok) throw new Error((await r.json()).message);
+            showToast("Approval request sent to Manager", "success");
+            setApprovalForm({ request_type: "discount", description: "", amount: "" });
+            fetchLeadApprovals();
+        } catch (err) { showToast(err.message, "error"); }
+        finally { setSavingApproval(false); }
+    };
+
+    const handleCreateTask = async () => {
+        if (!taskForm.title.trim()) return showToast("Task title required", "error");
+        try {
+            setSavingTask(true);
+            const r = await fetch(`${API_BASE}/tasks`, {
+                method: "POST", headers: auth,
+                body: JSON.stringify({
+                    ...taskForm,
+                    lead_id: lead.id,
+                    lead_name: lead.lead_name,
+                }),
+            });
+            if (!r.ok) throw new Error((await r.json()).message);
+            showToast("Task created", "success");
+            setTaskForm({ title: "", description: "", due_date: "", assigned_to: "", assigned_to_name: "" });
+        } catch (err) { showToast(err.message, "error"); }
+        finally { setSavingTask(false); }
     };
 
     const scoreLabel = (s) => s >= 70 ? "Hot" : s >= 40 ? "Warm" : "Cold";
@@ -171,6 +227,10 @@ export default function LeadDetail({ lead, session, profile, onClose, showToast 
                     <button className={`ptab ${tab === "details" ? "active" : ""}`} onClick={() => setTab("details")}>Details</button>
                     <button className={`ptab ${tab === "notes" ? "active" : ""}`} onClick={() => setTab("notes")}>📝 Notes ({notes.length})</button>
                     <button className={`ptab ${tab === "timeline" ? "active" : ""}`} onClick={() => setTab("timeline")}>Timeline ({activities.length})</button>
+                    <button className={`ptab ${tab === "task" ? "active" : ""}`} onClick={() => setTab("task")}>📌 Create Task</button>
+                    <button className={`ptab ${tab === "approvals" ? "active" : ""}`} onClick={() => setTab("approvals")}>
+                        📋 Approvals {approvals.filter((a) => a.status === "Pending").length > 0 && <span className="admin-tab-badge">{approvals.filter((a) => a.status === "Pending").length}</span>}
+                    </button>
                 </div>
 
                 {/* Details Tab */}
@@ -305,9 +365,116 @@ export default function LeadDetail({ lead, session, profile, onClose, showToast 
                         </div>
                     </div>
                 )}
+                {/* Create Task Tab */}
+                {tab === "task" && (
+                    <div className="ld-task-form">
+                        <div className="ld-task-header">
+                            <h4>📌 Create a Task linked to this Lead</h4>
+                            <p>This task will appear in the Tasks panel and the assignee's My Day.</p>
+                        </div>
+                        <label>Task Title *
+                            <input
+                                placeholder="e.g. Send proposal to principal"
+                                value={taskForm.title}
+                                onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
+                            />
+                        </label>
+                        <label style={{ marginTop: 8 }}>Description
+                            <input
+                                placeholder="Optional details..."
+                                value={taskForm.description}
+                                onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })}
+                            />
+                        </label>
+                        <label style={{ marginTop: 8 }}>Due Date
+                            <input
+                                type="date"
+                                value={taskForm.due_date}
+                                onChange={(e) => setTaskForm({ ...taskForm, due_date: e.target.value })}
+                            />
+                        </label>
+                        {owners?.length > 0 && (
+                            <label style={{ marginTop: 8 }}>Assign To
+                                <select
+                                    value={taskForm.assigned_to}
+                                    onChange={(e) => {
+                                        const owner = owners.find((o) => o.id === e.target.value);
+                                        setTaskForm({ ...taskForm, assigned_to: e.target.value, assigned_to_name: owner?.full_name || "" });
+                                    }}
+                                >
+                                    <option value="">— Myself —</option>
+                                    {owners.map((o) => (
+                                        <option key={o.id} value={o.id}>{o.full_name} ({o.role})</option>
+                                    ))}
+                                </select>
+                            </label>
+                        )}
+                        <div className="form-actions" style={{ marginTop: 14 }}>
+                            <button onClick={handleCreateTask} disabled={savingTask || !taskForm.title.trim()} className="btn-primary">
+                                {savingTask ? "Creating..." : "📌 Create Task"}
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Approvals Tab */}
+                {tab === "approvals" && (
+                    <div className="ld-approvals">
+                        {/* Request form */}
+                        <div className="ap-request-form">
+                            <h4>Request Approval from Manager</h4>
+                            <div className="ap-form-row">
+                                <label>Type
+                                    <select value={approvalForm.request_type} onChange={(e) => setApprovalForm({ ...approvalForm, request_type: e.target.value })}>
+                                        <option value="discount">💸 Discount</option>
+                                        <option value="proposal">📄 Proposal Authorization</option>
+                                        <option value="custom">📋 Custom</option>
+                                    </select>
+                                </label>
+                                {approvalForm.request_type === "discount" && (
+                                    <label>Amount (₹)
+                                        <input type="number" placeholder="0" value={approvalForm.amount} onChange={(e) => setApprovalForm({ ...approvalForm, amount: e.target.value })} />
+                                    </label>
+                                )}
+                            </div>
+                            <label style={{ marginTop: 8 }}>Reason / Details *
+                                <textarea
+                                    rows={3}
+                                    placeholder="Describe what you need approved and why..."
+                                    value={approvalForm.description}
+                                    onChange={(e) => setApprovalForm({ ...approvalForm, description: e.target.value })}
+                                />
+                            </label>
+                            <button onClick={handleRequestApproval} disabled={savingApproval || !approvalForm.description.trim()} className="btn-primary" style={{ marginTop: 10 }}>
+                                {savingApproval ? "Sending..." : "📤 Send Request"}
+                            </button>
+                        </div>
+
+                        {/* Existing requests */}
+                        {approvals.length > 0 && (
+                            <div className="ap-lead-history">
+                                <h4>Previous Requests</h4>
+                                {approvals.map((a) => (
+                                    <div key={a.id} className="ap-mini-card">
+                                        <div className="ap-mini-top">
+                                            <span>{a.request_type === "discount" ? "💸" : a.request_type === "proposal" ? "📄" : "📋"} {a.description.slice(0, 80)}</span>
+                                            <span className="ap-status-badge" style={
+                                                a.status === "Approved" ? { background: "#d1fae5", color: "#065f46" }
+                                                    : a.status === "Rejected" ? { background: "#fee2e2", color: "#991b1b" }
+                                                        : { background: "#fef3c7", color: "#92400e" }
+                                            }>{a.status}</span>
+                                        </div>
+                                        {a.reviewer_note && <div className="ap-mini-note">💬 {a.reviewer_note}</div>}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 <div className="form-actions" style={{ marginTop: 16 }}>
                     <button onClick={onClose} className="btn-secondary">Close</button>
+
                 </div>
             </div>
         </div>

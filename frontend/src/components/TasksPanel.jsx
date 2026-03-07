@@ -94,8 +94,12 @@ export default function TasksPanel({ session, showToast }) {
                             <input type="checkbox" checked={t.status === "Done"} onChange={() => handleToggle(t)} className="task-check" />
                             <div className="task-info">
                                 <strong className={t.status === "Done" ? "line-through" : ""}>{t.title}</strong>
+                                {t.lead_name && <span className="task-lead-link">🏢 {t.lead_name}</span>}
                                 {t.description && <p className="task-desc">{t.description}</p>}
-                                {t.due_date && <span className="task-due">{t.due_date}</span>}
+                                <div className="task-meta-row">
+                                    {t.due_date && <span className="task-due">{t.due_date}</span>}
+                                    {t.assigned_to_name && <span className="task-assignee">👤 {t.assigned_to_name}</span>}
+                                </div>
                             </div>
                             <button onClick={() => handleDelete(t.id)} className="btn-sm btn-danger">✕</button>
                         </div>

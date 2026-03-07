@@ -2577,3 +2577,413 @@ tr:hover {
 .switch input:checked+.switch-slider::before {
   transform: translateX(16px);
 }
+
+/* ===== PHASE 4: NOTIFICATIONS, APPROVALS, TASKS ===== */
+
+/* Notification Bell */
+.notif-wrap {
+  position: relative;
+}
+
+.notif-bell {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 8px;
+  position: relative;
+  transition: background 0.15s;
+}
+
+.notif-bell:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.notif-dot {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: #ef4444;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  border-radius: 10px;
+  min-width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+}
+
+.notif-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 360px;
+  max-height: 480px;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e2e8f0;
+  z-index: 999;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.notif-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.notif-panel-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.notif-mark-read {
+  font-size: 11px;
+  color: #3b82f6;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.notif-mark-read:hover {
+  text-decoration: underline;
+}
+
+.notif-empty {
+  padding: 32px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.notif-list {
+  overflow-y: auto;
+  max-height: 400px;
+}
+
+.notif-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid #f8fafc;
+  transition: background 0.1s;
+}
+
+.notif-item:hover {
+  background: #f8fafc;
+}
+
+.notif-unread {
+  background: #eff6ff;
+}
+
+.notif-unread:hover {
+  background: #dbeafe;
+}
+
+.notif-item-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.notif-item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.notif-item-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 2px;
+}
+
+.notif-item-text {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.notif-item-time {
+  font-size: 10px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+.notif-unread-dot {
+  width: 8px;
+  height: 8px;
+  background: #3b82f6;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+
+/* Approvals Panel */
+.approvals-panel {
+  max-width: 800px;
+}
+
+.ap-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.ap-title {
+  margin: 0 0 4px;
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.ap-subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.ap-filters {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.ap-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ap-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.ap-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.ap-card-left {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.ap-type-icon {
+  font-size: 24px;
+}
+
+.ap-type-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.ap-lead {
+  font-size: 12px;
+  color: #475569;
+  margin-top: 2px;
+}
+
+.ap-status-badge {
+  padding: 3px 10px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ap-description {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: #1e293b;
+  line-height: 1.5;
+}
+
+.ap-amount {
+  font-size: 13px;
+  color: #475569;
+  margin-bottom: 8px;
+}
+
+.ap-meta {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: #94a3b8;
+  margin-bottom: 6px;
+}
+
+.ap-reviewer-note {
+  background: #f0fdf4;
+  border-left: 3px solid #22c55e;
+  padding: 8px 12px;
+  border-radius: 0 6px 6px 0;
+  font-size: 12px;
+  color: #166534;
+  margin-bottom: 8px;
+}
+
+.ap-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.ap-review-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.ap-note-input {
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 8px;
+  font-size: 13px;
+  width: 100%;
+}
+
+.ap-review-btns {
+  display: flex;
+  gap: 8px;
+}
+
+/* LeadDetail - ApprovalTab */
+.ld-approvals {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ap-request-form {
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+}
+
+.ap-request-form h4 {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.ap-form-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.ap-form-row label {
+  min-width: 140px;
+}
+
+.ap-lead-history h4 {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: #475569;
+}
+
+.ap-mini-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+
+.ap-mini-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: #334155;
+}
+
+.ap-mini-note {
+  font-size: 12px;
+  color: #16a34a;
+  margin-top: 6px;
+}
+
+/* LeadDetail - Task Tab */
+.ld-task-form {
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 16px 20px;
+  border: 1px solid #e2e8f0;
+}
+
+.ld-task-header h4 {
+  margin: 0 0 4px;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.ld-task-header p {
+  margin: 0 0 14px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* Tasks Panel - Phase 4 additions */
+.task-lead-link {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 11px;
+  color: #3b82f6;
+  background: #eff6ff;
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+.task-meta-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.task-assignee {
+  font-size: 11px;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 1px 7px;
+  border-radius: 10px;
+}

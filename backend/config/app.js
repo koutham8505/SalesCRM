@@ -13,6 +13,8 @@ const dashboardRoutes = require("../routes/dashboard.routes");
 const rbacRoutes = require("../routes/rbac.routes");
 const targetsRoutes = require("../routes/targets.routes");
 const masterDataRoutes = require("../routes/masterData.routes");
+const approvalsRoutes = require("../routes/approvals.routes");
+const notificationsRoutes = require("../routes/notifications.routes");
 
 const app = express();
 
@@ -49,5 +51,7 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/rbac", rbacRoutes);
 app.use("/api/targets", targetsRoutes);
 app.use("/api/master-data", masterDataRoutes);
+app.use("/api/approvals", approvalsRoutes);
+app.use("/api/notifications", notificationsRoutes);
 
 module.exports = app;

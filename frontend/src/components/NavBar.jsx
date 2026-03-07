@@ -1,7 +1,8 @@
 // D:\SalesCRM\frontend\src\components\NavBar.jsx
 import { useState, useRef, useEffect } from "react";
+import NotificationBell from "./NotificationBell";
 
-export default function NavBar({ profile, currentView, onNavigate, onLogout }) {
+export default function NavBar({ profile, currentView, onNavigate, onLogout, session, onNotifLeadClick }) {
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef(null);
 
@@ -35,14 +36,15 @@ export default function NavBar({ profile, currentView, onNavigate, onLogout }) {
             <div className="nav-left">
                 <span className="nav-logo" onClick={() => onNavigate("dashboard")}>Sales CRM</span>
                 <div className="nav-tabs">
-                    {["dashboard", "leads", "today", "tasks", "targets", "reports", "templates"].map((v) => (
+                    {["dashboard", "leads", "today", "tasks", "targets", "reports", "templates", "approvals"].map((v) => (
                         <button key={v} className={`nav-tab ${currentView === v ? "active" : ""}`} onClick={() => onNavigate(v)}>
-                            {v === "templates" ? "📋 Templates" : v.charAt(0).toUpperCase() + v.slice(1)}
+                            {v === "templates" ? "📋 Templates" : v === "approvals" ? "✅ Approvals" : v.charAt(0).toUpperCase() + v.slice(1)}
                         </button>
                     ))}
                 </div>
             </div>
             <div className="nav-right" ref={menuRef}>
+                <NotificationBell session={session} onNotifClick={onNotifLeadClick} />
                 <div className="nav-avatar" onClick={() => setMenuOpen(!menuOpen)} title={displayName}>{initials}</div>
                 {menuOpen && (
                     <div className="nav-dropdown">
