@@ -4,10 +4,8 @@ const supabase = require("../config/supabase");
 // GET /api/templates
 exports.getTemplates = async (req, res) => {
     try {
-        const { data, error } = await supabase
-            .from("email_templates")
-            .select("*")
-            .order("name");
+        let query = supabase.from("lead_templates").select("*").order("type").order("title");
+        const { data, error } = await query;
         if (error) throw error;
         res.json(data || []);
     } catch (err) {
@@ -15,14 +13,23 @@ exports.getTemplates = async (req, res) => {
     }
 };
 
-// POST /api/templates (Admin only)
+// POST /api/templates  (Admin/Manager)
 exports.createTemplate = async (req, res) => {
     try {
-        if (req.user.role !== "Admin") return res.status(403).json({ message: "Admin only" });
-        const { name, subject, body } = req.body;
-        if (!name || !subject || !body) return res.status(400).json({ message: "name, subject, body required" });
-        const { data, error } = await supabase.from("email_templates")
-            .insert([{ name, subject, body, created_by: req.user.id }]).select();
+        if (!["Admin", "Manager"].includes(req.user.role))
+            return res.status(403).json({ message: "Admin or Manager only" });
+        const { title, type, content } = req.body;
+        if (!title?.trim() || !content?.trim()) return res.status(400).json({ message: "title and content required" });
+        const { data, error } = await supabase
+            .from("lead_templates")
+            .insert([{
+                title: title.trim(),
+                type: type || "call_script",
+                content: content.trim(),
+                created_by: req.user.id,
+                created_by_name: req.user.full_name || req.user.email,
+            }])
+            .select();
         if (error) throw error;
         res.status(201).json(data[0]);
     } catch (err) {
@@ -30,16 +37,16 @@ exports.createTemplate = async (req, res) => {
     }
 };
 
-// PUT /api/templates/:id (Admin only)
+// PUT /api/templates/:id (Admin/Manager)
 exports.updateTemplate = async (req, res) => {
     try {
-        if (req.user.role !== "Admin") return res.status(403).json({ message: "Admin only" });
-        const updates = {};
-        if (req.body.name) updates.name = req.body.name;
-        if (req.body.subject) updates.subject = req.body.subject;
-        if (req.body.body) updates.body = req.body.body;
-        const { data, error } = await supabase.from("email_templates")
-            .update(updates).eq("id", req.params.id).select();
+        if (!["Admin", "Manager"].includes(req.user.role))
+            return res.status(403).json({ message: "Admin or Manager only" });
+        const updates = { updated_at: new Date().toISOString() };
+        if (req.body.title) updates.title = req.body.title;
+        if (req.body.type) updates.type = req.body.type;
+        if (req.body.content) updates.content = req.body.content;
+        const { data, error } = await supabase.from("lead_templates").update(updates).eq("id", req.params.id).select();
         if (error) throw error;
         res.json(data[0]);
     } catch (err) {
@@ -47,11 +54,12 @@ exports.updateTemplate = async (req, res) => {
     }
 };
 
-// DELETE /api/templates/:id (Admin only)
+// DELETE /api/templates/:id (Admin/Manager)
 exports.deleteTemplate = async (req, res) => {
     try {
-        if (req.user.role !== "Admin") return res.status(403).json({ message: "Admin only" });
-        const { error } = await supabase.from("email_templates").delete().eq("id", req.params.id);
+        if (!["Admin", "Manager"].includes(req.user.role))
+            return res.status(403).json({ message: "Admin or Manager only" });
+        const { error } = await supabase.from("lead_templates").delete().eq("id", req.params.id);
         if (error) throw error;
         res.json({ success: true });
     } catch (err) {

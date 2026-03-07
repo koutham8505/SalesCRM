@@ -1,27 +1,58 @@
 // D:\SalesCRM\frontend\src\components\LeadDetail.jsx
 import { useState, useEffect } from "react";
+import { computeCompleteness } from "./TodayView";
 
 const API_BASE = `${import.meta.env.VITE_API_URL || "http://localhost:3000"}/api`;
 const typeIcons = { CALL: "📞", EMAIL: "✉️", MEETING: "🤝", NOTE: "📝", PITCH_DECK: "📊" };
 
+const STAGE_COLORS = {
+    "New": "#64748b", "Contacted": "#3b82f6", "Demo/Meeting": "#8b5cf6",
+    "Proposal": "#f59e0b", "Negotiation": "#f97316", "Won": "#22c55e", "Lost": "#ef4444"
+};
+
+const TAG_COLORS = ["#dbeafe", "#fce7f3", "#d1fae5", "#fef3c7", "#e0e7ff", "#fee2e2", "#ccfbf1", "#fef9c3"];
+
 export default function LeadDetail({ lead, session, profile, onClose, showToast }) {
     const [tab, setTab] = useState("details");
     const [activities, setActivities] = useState([]);
+    const [notes, setNotes] = useState([]);
     const [actForm, setActForm] = useState({ type: "NOTE", description: "", outcome: "", duration: "" });
+    const [noteText, setNoteText] = useState("");
     const [saving, setSaving] = useState(false);
+    const [savingNote, setSavingNote] = useState(false);
+    const [templates, setTemplates] = useState([]);
+    const [showTemplates, setShowTemplates] = useState(false);
 
     const auth = { Authorization: `Bearer ${session?.access_token}`, "Content-Type": "application/json" };
 
     useEffect(() => {
-        if (lead?.id) fetchActivities();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        if (lead?.id) { fetchActivities(); fetchNotes(); }
     }, [lead?.id]);
+
+    useEffect(() => {
+        if (tab === "notes") fetchNotes();
+        if (tab === "timeline") fetchActivities();
+    }, [tab]);
 
     const fetchActivities = async () => {
         try {
             const res = await fetch(`${API_BASE}/activities/${lead.id}`, { headers: auth });
             if (res.ok) setActivities(await res.json());
         } catch { /* ignore */ }
+    };
+
+    const fetchNotes = async () => {
+        try {
+            const res = await fetch(`${API_BASE}/leads/${lead.id}/notes`, { headers: auth });
+            if (res.ok) setNotes(await res.json());
+        } catch { }
+    };
+
+    const fetchTemplates = async () => {
+        try {
+            const res = await fetch(`${API_BASE}/templates`, { headers: auth });
+            if (res.ok) setTemplates(await res.json());
+        } catch { }
     };
 
     const handleLogActivity = async () => {
@@ -40,6 +71,34 @@ export default function LeadDetail({ lead, session, profile, onClose, showToast 
         finally { setSaving(false); }
     };
 
+    const handleAddNote = async () => {
+        if (!noteText.trim()) return;
+        try {
+            setSavingNote(true);
+            const res = await fetch(`${API_BASE}/leads/${lead.id}/notes`, {
+                method: "POST", headers: auth,
+                body: JSON.stringify({ note: noteText.trim() }),
+            });
+            if (!res.ok) throw new Error((await res.json()).message);
+            setNoteText("");
+            fetchNotes();
+        } catch (err) { showToast(err.message, "error"); }
+        finally { setSavingNote(false); }
+    };
+
+    const handleDeleteNote = async (noteId) => {
+        try {
+            await fetch(`${API_BASE}/leads/${lead.id}/notes/${noteId}`, { method: "DELETE", headers: auth });
+            setNotes((prev) => prev.filter((n) => n.id !== noteId));
+        } catch { }
+    };
+
+    const handleUseTemplate = (template) => {
+        setActForm((prev) => ({ ...prev, description: template.content, type: template.type === "email" ? "EMAIL" : template.type === "call_script" ? "CALL" : "NOTE" }));
+        setTab("timeline");
+        setShowTemplates(false);
+    };
+
     const handleEmail = () => {
         const subject = encodeURIComponent(`Introduction about our services`);
         const body = encodeURIComponent(`Hi ${lead.lead_name || ""},\n\nI wanted to reach out regarding...\n\nBest regards,\n${profile?.full_name || ""}`);
@@ -48,12 +107,15 @@ export default function LeadDetail({ lead, session, profile, onClose, showToast 
 
     const scoreLabel = (s) => s >= 70 ? "Hot" : s >= 40 ? "Warm" : "Cold";
     const scoreClass = (s) => s >= 70 ? "score-hot" : s >= 40 ? "score-warm" : "score-cold";
+    const tags = Array.isArray(lead.tags) ? lead.tags : (lead.tags ? JSON.parse(lead.tags) : []);
+    const completeness = computeCompleteness(lead);
 
     if (!lead) return null;
 
     return (
         <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
             <div className="modal-card lead-detail-modal">
+                {/* Header */}
                 <div className="lead-detail-header">
                     <div>
                         <h2>{lead.lead_name || "Unnamed Lead"}</h2>
@@ -61,8 +123,23 @@ export default function LeadDetail({ lead, session, profile, onClose, showToast 
                             {lead.institution_name && <span>🏢 {lead.institution_name}</span>}
                             {lead.job_title && <span> · {lead.job_title}</span>}
                         </p>
+                        {/* Tags */}
+                        {tags.length > 0 && (
+                            <div className="ld-tags">
+                                {tags.map((tag, i) => (
+                                    <span key={tag} className="ld-tag" style={{ background: TAG_COLORS[i % TAG_COLORS.length] }}>
+                                        {tag}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
                     </div>
                     <div className="lead-detail-badges">
+                        {lead.stage && (
+                            <span className="stage-pill" style={{ background: STAGE_COLORS[lead.stage] || "#64748b", color: "#fff", padding: "3px 10px", borderRadius: 12, fontSize: 11 }}>
+                                {lead.stage}
+                            </span>
+                        )}
                         {lead.score !== undefined && (
                             <span className={`score-pill ${scoreClass(lead.score)}`}>{scoreLabel(lead.score)} ({lead.score})</span>
                         )}
@@ -70,11 +147,33 @@ export default function LeadDetail({ lead, session, profile, onClose, showToast 
                     </div>
                 </div>
 
+                {/* Completeness bar */}
+                <div className="ld-completeness">
+                    <span style={{ fontSize: 11, color: "#64748b" }}>Profile {completeness}% complete</span>
+                    <div className="completeness-track" style={{ flex: 1, margin: "0 8px" }}>
+                        <div className="completeness-fill" style={{
+                            width: `${completeness}%`,
+                            background: completeness >= 80 ? "#22c55e" : completeness >= 50 ? "#f59e0b" : "#ef4444"
+                        }} />
+                    </div>
+                </div>
+
+                {/* Next action banner */}
+                {lead.next_action && (
+                    <div className="ld-next-action">
+                        🎯 Next: <strong>{lead.next_action}</strong>
+                        {lead.next_action_date && <span> · Due {lead.next_action_date}</span>}
+                    </div>
+                )}
+
+                {/* Tabs */}
                 <div className="detail-tabs">
                     <button className={`ptab ${tab === "details" ? "active" : ""}`} onClick={() => setTab("details")}>Details</button>
+                    <button className={`ptab ${tab === "notes" ? "active" : ""}`} onClick={() => setTab("notes")}>📝 Notes ({notes.length})</button>
                     <button className={`ptab ${tab === "timeline" ? "active" : ""}`} onClick={() => setTab("timeline")}>Timeline ({activities.length})</button>
                 </div>
 
+                {/* Details Tab */}
                 {tab === "details" && (
                     <div className="lead-detail-grid">
                         <div className="ld-field"><span className="ld-label">Phone</span><span>{lead.phone || "—"}</span></div>
@@ -92,10 +191,9 @@ export default function LeadDetail({ lead, session, profile, onClose, showToast 
                         <div className="ld-field"><span className="ld-label">Meeting Date</span><span>{lead.meeting_date ? lead.meeting_date.replace("T", " ").slice(0, 16) : "—"}</span></div>
                         <div className="ld-field"><span className="ld-label">Owner</span><span>{lead.owner_name || lead.lead_owner || "—"}</span></div>
                         {lead.deal_value !== undefined && <div className="ld-field"><span className="ld-label">Deal Value</span><span>₹{Number(lead.deal_value || 0).toLocaleString()}</span></div>}
-                        {/* Proposal fields */}
+                        {lead.lost_reason && <div className="ld-field"><span className="ld-label">Loss Reason</span><span style={{ color: "#dc2626" }}>{lead.lost_reason}</span></div>}
                         <div className="ld-field"><span className="ld-label">Proposal Sent</span><span>{lead.proposal_sent ? "Yes" : "No"}</span></div>
                         {lead.proposal_link && <div className="ld-field"><span className="ld-label">Proposal Link</span><span><a href={lead.proposal_link} target="_blank" rel="noreferrer">{lead.proposal_link}</a></span></div>}
-                        {/* School Details */}
                         {lead.board && <div className="ld-field"><span className="ld-label">Board</span><span>{lead.board}</span></div>}
                         {lead.grades_offered && <div className="ld-field"><span className="ld-label">Grades Offered</span><span>{lead.grades_offered}</span></div>}
                         {lead.student_strength && <div className="ld-field"><span className="ld-label">Student Strength</span><span>{lead.student_strength}</span></div>}
@@ -108,9 +206,59 @@ export default function LeadDetail({ lead, session, profile, onClose, showToast 
                     </div>
                 )}
 
+                {/* Notes Tab */}
+                {tab === "notes" && (
+                    <div className="notes-section">
+                        <div className="note-compose">
+                            <textarea
+                                className="note-input"
+                                placeholder="Write a quick note (call summary, campus visit, decision maker insight...)..."
+                                value={noteText}
+                                onChange={(e) => setNoteText(e.target.value)}
+                                rows={3}
+                            />
+                            <button onClick={handleAddNote} disabled={savingNote || !noteText.trim()} className="btn-primary">
+                                {savingNote ? "Saving..." : "Add Note"}
+                            </button>
+                        </div>
+                        <div className="notes-list">
+                            {notes.length === 0 && <p className="empty-message">No notes yet. Add your first one above.</p>}
+                            {notes.map((n) => (
+                                <div key={n.id} className="note-card">
+                                    <div className="note-header">
+                                        <span className="note-author">👤 {n.user_name || "Unknown"}</span>
+                                        <span className="note-date">{new Date(n.created_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}</span>
+                                        <button className="note-delete-btn" onClick={() => handleDeleteNote(n.id)} title="Delete note">✕</button>
+                                    </div>
+                                    <p className="note-text">{n.note}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Timeline Tab */}
                 {tab === "timeline" && (
                     <div className="timeline-section">
-                        {/* Quick actions */}
+                        {/* Use Template button */}
+                        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+                            <button className="btn-sm" onClick={() => { if (!templates.length) fetchTemplates(); setShowTemplates((v) => !v); }}>
+                                📋 {showTemplates ? "Hide" : "Use Template"}
+                            </button>
+                        </div>
+
+                        {showTemplates && (
+                            <div className="templates-picker">
+                                {templates.length === 0 && <p style={{ fontSize: 12, color: "#94a3b8" }}>No templates yet</p>}
+                                {templates.map((t) => (
+                                    <div key={t.id} className="template-pick-card" onClick={() => handleUseTemplate(t)}>
+                                        <span className="template-pick-type">{t.type === "call_script" ? "📞" : t.type === "email" ? "✉️" : "📋"}</span>
+                                        <span>{t.title}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
                         <div className="quick-actions">
                             <div className="qa-row">
                                 <select value={actForm.type} onChange={(e) => setActForm({ ...actForm, type: e.target.value })}>
@@ -138,7 +286,6 @@ export default function LeadDetail({ lead, session, profile, onClose, showToast 
                             <button onClick={handleLogActivity} disabled={saving} className="btn-primary">{saving ? "Saving..." : "Log Activity"}</button>
                         </div>
 
-                        {/* Timeline */}
                         <div className="activity-timeline">
                             {activities.length === 0 && <p className="empty-message">No activities yet</p>}
                             {activities.map((a) => (

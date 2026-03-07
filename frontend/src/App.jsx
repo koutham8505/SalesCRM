@@ -18,6 +18,7 @@ import Toast from "./components/Toast";
 import ConversionFunnel from "./components/ConversionFunnel";
 import SourcePerformance from "./components/SourcePerformance";
 import TeamProductivity from "./components/TeamProductivity";
+import TemplatesPage from "./components/TemplatesPage";
 import "./App.css";
 
 const BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
@@ -180,6 +181,8 @@ export default function App({ session, onLogout }) {
         return <ProfilePage profile={profile} session={session} onProfileUpdated={fetchLeads} showToast={notify} />;
       case "admin":
         return role === "Admin" ? <AdminPanel session={session} showToast={notify} /> : null;
+      case "templates":
+        return <TemplatesPage session={session} role={role} />;
       case "today":
         return <TodayView leads={leads} tasks={tasks} role={role} token={session?.access_token} onViewLead={(l) => setViewLead(l)} onTaskUpdate={fetchTasks} />;
       case "tasks":

@@ -12,6 +12,7 @@ const templatesRoutes = require("../routes/templates.routes");
 const dashboardRoutes = require("../routes/dashboard.routes");
 const rbacRoutes = require("../routes/rbac.routes");
 const targetsRoutes = require("../routes/targets.routes");
+const masterDataRoutes = require("../routes/masterData.routes");
 
 const app = express();
 
@@ -47,5 +48,6 @@ app.use("/api/templates", templatesRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/rbac", rbacRoutes);
 app.use("/api/targets", targetsRoutes);
+app.use("/api/master-data", masterDataRoutes);
 
 module.exports = app;

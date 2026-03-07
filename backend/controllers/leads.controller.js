@@ -351,3 +351,92 @@ exports.getValidationRules = async (req, res) => {
     res.json([]);
   }
 };
+
+// POST /api/leads/merge  (Manager/Admin only)
+// Body: { master_id, duplicate_id }
+exports.mergeLeads = async (req, res) => {
+  try {
+    const user = req.user;
+    if (user.role !== "Admin" && user.role !== "Manager") {
+      return res.status(403).json({ message: "Only Managers/Admins can merge leads" });
+    }
+    const { master_id, duplicate_id } = req.body;
+    if (!master_id || !duplicate_id) return res.status(400).json({ message: "master_id and duplicate_id required" });
+    if (master_id === duplicate_id) return res.status(400).json({ message: "Cannot merge a lead with itself" });
+
+    const [{ data: master }, { data: dupe }] = await Promise.all([
+      supabase.from("my_leads").select("*").eq("id", master_id).single(),
+      supabase.from("my_leads").select("*").eq("id", duplicate_id).single(),
+    ]);
+    if (!master || !dupe) return res.status(404).json({ message: "Lead not found" });
+
+    // Merge: fill in missing fields from duplicate into master
+    const patch = {};
+    const mergeField = (field) => { if (!master[field] && dupe[field]) patch[field] = dupe[field]; };
+    ["phone", "alt_phone", "whatsapp", "email", "website", "board", "fees", "student_strength", "medium_of_instruction", "school_type", "tier", "geo_classification", "remark"].forEach(mergeField);
+
+    // Merge tags
+    const masterTags = Array.isArray(master.tags) ? master.tags : [];
+    const dupeTags = Array.isArray(dupe.tags) ? dupe.tags : [];
+    const mergedTags = [...new Set([...masterTags, ...dupeTags])];
+    if (mergedTags.length !== masterTags.length) patch.tags = mergedTags;
+
+    if (Object.keys(patch).length > 0) {
+      await supabase.from("my_leads").update(patch).eq("id", master_id);
+    }
+
+    // Re-assign activities from duplicate to master
+    await supabase.from("lead_activities").update({ lead_id: master_id }).eq("lead_id", duplicate_id);
+
+    // Re-assign notes from duplicate to master (if table exists)
+    try { await supabase.from("lead_notes").update({ lead_id: master_id }).eq("lead_id", duplicate_id); } catch { }
+
+    // Delete the duplicate
+    await supabase.from("my_leads").delete().eq("id", duplicate_id);
+    logAudit(user.id, user.email, "LEAD_MERGE", master_id, "my_leads", { merged_from: duplicate_id });
+
+    res.json({ success: true, master_id, merged_from: duplicate_id });
+  } catch (err) {
+    console.error("mergeLeads error:", err);
+    res.status(500).json({ message: "Merge failed" });
+  }
+};
+
+// GET /api/leads/duplicates (Manager/Admin only)
+exports.getDuplicates = async (req, res) => {
+  try {
+    const user = req.user;
+    if (user.role !== "Admin" && user.role !== "Manager") {
+      return res.status(403).json({ message: "Only Managers/Admins can view duplicates" });
+    }
+
+    let query = supabase.from("my_leads").select("id, lead_name, institution_name, phone, email, owner_name, stage, created_at");
+    if (user.role === "Manager" && user.team) query = query.eq("team", user.team);
+    const { data, error } = await query;
+    if (error) throw error;
+    const rows = data || [];
+
+    // Group by phone and by name+institution
+    const phoneMap = {};
+    rows.forEach((r) => {
+      if (r.phone) {
+        const key = r.phone.replace(/\D/g, "").slice(-10);
+        if (!phoneMap[key]) phoneMap[key] = [];
+        phoneMap[key].push(r);
+      }
+    });
+
+    const duplicateSets = [];
+    const seen = new Set();
+    Object.values(phoneMap).forEach((group) => {
+      if (group.length > 1) {
+        const key = group.map((g) => g.id).sort().join("|");
+        if (!seen.has(key)) { seen.add(key); duplicateSets.push({ reason: "Same phone", leads: group }); }
+      }
+    });
+
+    res.json(duplicateSets);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to find duplicates" });
+  }
+};

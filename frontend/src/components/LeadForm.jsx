@@ -16,6 +16,7 @@ const EMPTY_LEAD = {
     call_status: "", remark: "", next_follow_up: "", meeting_date: "", lead_source: "",
     lead_owner: "", status: "", owner_id: "", owner_name: "", owner_email: "",
     stage: "New", lost_reason: "", next_action: "", next_action_date: "",
+    tags: [],
     // School Details
     board: "", grades_offered: "", student_strength: "", fees: "",
     medium_of_instruction: "", school_type: "", tier: "", geo_classification: "",

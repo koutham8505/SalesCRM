@@ -2,6 +2,15 @@
 import { useState, useEffect, useCallback } from "react";
 
 const ADMIN_API = `${import.meta.env.VITE_API_URL || "http://localhost:3000"}/api/admin`;
+const LEADS_API = `${import.meta.env.VITE_API_URL || "http://localhost:3000"}/api/leads`;
+const MD_API = `${import.meta.env.VITE_API_URL || "http://localhost:3000"}/api/master-data`;
+
+const MD_CATEGORIES = [
+    { key: "board", label: "Boards" },
+    { key: "school_type", label: "School Types" },
+    { key: "lead_source", label: "Lead Sources" },
+    { key: "tag", label: "Tags" },
+];
 
 export default function AdminPanel({ session, showToast }) {
     const [tab, setTab] = useState("users");
@@ -9,9 +18,14 @@ export default function AdminPanel({ session, showToast }) {
     const [requests, setRequests] = useState([]);
     const [auditLog, setAuditLog] = useState([]);
     const [validationRules, setValidationRules] = useState([]);
+    const [duplicates, setDuplicates] = useState([]);
+    const [masterData, setMasterData] = useState([]);
+    const [mdCategory, setMdCategory] = useState("board");
+    const [mdNewValue, setMdNewValue] = useState("");
     const [loading, setLoading] = useState(true);
     const [editUser, setEditUser] = useState(null);
     const [search, setSearch] = useState("");
+    const [merging, setMerging] = useState(null);
     const auth = { Authorization: `Bearer ${session?.access_token}`, "Content-Type": "application/json" };
 
     const fetchUsers = useCallback(async () => {
@@ -26,9 +40,20 @@ export default function AdminPanel({ session, showToast }) {
     const fetchRules = useCallback(async () => {
         try { const r = await fetch(`${ADMIN_API}/validation-rules`, { headers: auth }); if (r.ok) setValidationRules(await r.json()); } catch { }
     }, [session]);
+    const fetchDuplicates = useCallback(async () => {
+        try { const r = await fetch(`${LEADS_API}/duplicates`, { headers: auth }); if (r.ok) setDuplicates(await r.json()); } catch { }
+    }, [session]);
+    const fetchMasterData = useCallback(async () => {
+        try { const r = await fetch(`${MD_API}/all`, { headers: auth }); if (r.ok) setMasterData(await r.json()); } catch { }
+    }, [session]);
 
     useEffect(() => { fetchUsers(); fetchRequests(); }, [fetchUsers, fetchRequests]);
-    useEffect(() => { if (tab === "audit") fetchAudit(); if (tab === "validation") fetchRules(); }, [tab, fetchAudit, fetchRules]);
+    useEffect(() => {
+        if (tab === "audit") fetchAudit();
+        if (tab === "validation") fetchRules();
+        if (tab === "duplicates") fetchDuplicates();
+        if (tab === "settings") fetchMasterData();
+    }, [tab]);
 
     const handleUserSave = async () => {
         if (!editUser) return;
@@ -64,9 +89,45 @@ export default function AdminPanel({ session, showToast }) {
         } catch (err) { showToast(err.message, "error"); }
     };
 
-    const filteredUsers = users.filter((u) => !search || u.full_name?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase()));
+    const handleMerge = async (masterId, duplicateId) => {
+        if (!confirm("Merge leads? The duplicate will be deleted and its data merged into the master.")) return;
+        try {
+            setMerging(duplicateId);
+            const r = await fetch(`${LEADS_API}/merge`, { method: "POST", headers: auth, body: JSON.stringify({ master_id: masterId, duplicate_id: duplicateId }) });
+            if (!r.ok) throw new Error((await r.json()).message);
+            showToast("Leads merged successfully", "success"); fetchDuplicates();
+        } catch (err) { showToast(err.message, "error"); }
+        finally { setMerging(null); }
+    };
 
+    const handleMdAdd = async () => {
+        if (!mdNewValue.trim()) return;
+        try {
+            const r = await fetch(MD_API, { method: "POST", headers: auth, body: JSON.stringify({ category: mdCategory, value: mdNewValue.trim() }) });
+            if (!r.ok) throw new Error((await r.json()).message);
+            setMdNewValue(""); fetchMasterData(); showToast("Entry added", "success");
+        } catch (err) { showToast(err.message, "error"); }
+    };
+
+    const handleMdToggle = async (item) => {
+        try {
+            await fetch(`${MD_API}/${item.id}`, { method: "PUT", headers: auth, body: JSON.stringify({ is_active: !item.is_active }) });
+            fetchMasterData();
+        } catch { }
+    };
+
+    const handleMdDelete = async (id) => {
+        if (!confirm("Delete this entry?")) return;
+        try {
+            await fetch(`${MD_API}/${id}`, { method: "DELETE", headers: auth });
+            fetchMasterData(); showToast("Deleted", "success");
+        } catch { }
+    };
+
+    const filteredUsers = users.filter((u) => !search || u.full_name?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase()));
     const pendingCount = requests.filter((r) => r.status === "Pending").length;
+    const dupeCount = duplicates.length;
+    const mdFiltered = masterData.filter((m) => m.category === mdCategory);
 
     return (
         <div className="admin-panel">
@@ -76,8 +137,13 @@ export default function AdminPanel({ session, showToast }) {
                 <button className={`ptab ${tab === "requests" ? "active" : ""}`} onClick={() => setTab("requests")}>Feature Requests {pendingCount > 0 && `(${pendingCount})`}</button>
                 <button className={`ptab ${tab === "audit" ? "active" : ""}`} onClick={() => setTab("audit")}>Audit Log</button>
                 <button className={`ptab ${tab === "validation" ? "active" : ""}`} onClick={() => setTab("validation")}>Validation Rules</button>
+                <button className={`ptab ${tab === "duplicates" ? "active" : ""}`} onClick={() => setTab("duplicates")}>
+                    🔀 Duplicates {dupeCount > 0 && <span className="admin-tab-badge">{dupeCount}</span>}
+                </button>
+                <button className={`ptab ${tab === "settings" ? "active" : ""}`} onClick={() => setTab("settings")}>⚙️ Settings</button>
             </div>
 
+            {/* Users */}
             {tab === "users" && (
                 <div className="admin-section">
                     <input type="text" placeholder="Search users..." value={search} onChange={(e) => setSearch(e.target.value)} className="search-input" style={{ marginBottom: 12, maxWidth: 300 }} />
@@ -103,7 +169,6 @@ export default function AdminPanel({ session, showToast }) {
                             </table>
                         </div>
                     )}
-
                     {editUser && (
                         <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setEditUser(null)}>
                             <div className="modal-card">
@@ -132,6 +197,7 @@ export default function AdminPanel({ session, showToast }) {
                 </div>
             )}
 
+            {/* Feature Requests */}
             {tab === "requests" && (
                 <div className="admin-section">
                     {requests.length === 0 ? <p className="empty-message">No feature requests</p> : (
@@ -150,12 +216,11 @@ export default function AdminPanel({ session, showToast }) {
                                     </div>
                                     {r.status === "Pending" && (
                                         <div className="req-card-actions">
-                                            <button className="btn-sm" style={{ background: "#d1fae5", color: "#065f46" }}
-                                                onClick={() => {
-                                                    const flagMap = { "Import leads": "import", "Bulk update": "bulk_update", "Delete leads": "delete", "Team/Owner filters": "team_filters" };
-                                                    const af = {}; r.requested_features.split(", ").forEach((f) => { if (flagMap[f]) af[flagMap[f]] = true; });
-                                                    handleRequestAction(r.id, "Approved", af);
-                                                }}>Approve</button>
+                                            <button className="btn-sm" style={{ background: "#d1fae5", color: "#065f46" }} onClick={() => {
+                                                const flagMap = { "Import leads": "import", "Bulk update": "bulk_update", "Delete leads": "delete", "Team/Owner filters": "team_filters" };
+                                                const af = {}; r.requested_features.split(", ").forEach((f) => { if (flagMap[f]) af[flagMap[f]] = true; });
+                                                handleRequestAction(r.id, "Approved", af);
+                                            }}>Approve</button>
                                             <button className="btn-sm btn-danger" onClick={() => handleRequestAction(r.id, "Rejected")}>Reject</button>
                                         </div>
                                     )}
@@ -166,6 +231,7 @@ export default function AdminPanel({ session, showToast }) {
                 </div>
             )}
 
+            {/* Audit Log */}
             {tab === "audit" && (
                 <div className="admin-section">
                     <h3>Recent Actions</h3>
@@ -190,6 +256,7 @@ export default function AdminPanel({ session, showToast }) {
                 </div>
             )}
 
+            {/* Validation Rules */}
             {tab === "validation" && (
                 <div className="admin-section">
                     <h3>Field Validation Rules</h3>
@@ -203,6 +270,88 @@ export default function AdminPanel({ session, showToast }) {
                                 </label>
                                 <span className="rule-meta">{rule.message || ""}</span>
                                 {rule.regex && <code className="rule-regex">{rule.regex}</code>}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Duplicates */}
+            {tab === "duplicates" && (
+                <div className="admin-section">
+                    <h3>🔀 Duplicate Leads</h3>
+                    <p style={{ fontSize: 13, color: "#64748b", marginBottom: 16 }}>Leads grouped by matching phone number. Select which one to keep as master — the other will be merged into it and deleted.</p>
+                    {duplicates.length === 0 ? (
+                        <div className="empty-message" style={{ paddingTop: 40 }}>✅ No duplicates found!</div>
+                    ) : (
+                        duplicates.map((group, gi) => (
+                            <div key={gi} className="dupe-group">
+                                <div className="dupe-reason">{group.reason}</div>
+                                <div className="dupe-leads">
+                                    {group.leads.map((lead) => (
+                                        <div key={lead.id} className="dupe-card">
+                                            <div className="dupe-name">{lead.lead_name || "Unnamed"}</div>
+                                            <div className="dupe-meta">
+                                                {lead.institution_name && <span>🏢 {lead.institution_name}</span>}
+                                                {lead.phone && <span> · 📞 {lead.phone}</span>}
+                                                {lead.stage && <span> · {lead.stage}</span>}
+                                            </div>
+                                            <div className="dupe-date">{new Date(lead.created_at).toLocaleDateString()}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="dupe-actions">
+                                    {group.leads.length === 2 && (
+                                        <>
+                                            <button className="btn-sm" style={{ background: "#dbeafe", color: "#1e40af" }} disabled={merging !== null} onClick={() => handleMerge(group.leads[0].id, group.leads[1].id)}>
+                                                {merging === group.leads[1].id ? "Merging..." : `Keep "${group.leads[0].lead_name}" → Delete "${group.leads[1].lead_name}"`}
+                                            </button>
+                                            <button className="btn-sm" style={{ background: "#d1fae5", color: "#065f46" }} disabled={merging !== null} onClick={() => handleMerge(group.leads[1].id, group.leads[0].id)}>
+                                                {merging === group.leads[0].id ? "Merging..." : `Keep "${group.leads[1].lead_name}" → Delete "${group.leads[0].lead_name}"`}
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+            )}
+
+            {/* Settings — Configurable Dropdowns */}
+            {tab === "settings" && (
+                <div className="admin-section">
+                    <h3>⚙️ Dropdown Settings</h3>
+                    <p style={{ fontSize: 13, color: "#64748b", marginBottom: 16 }}>Manage the values available in dropdowns across the app.</p>
+
+                    <div className="settings-tabs">
+                        {MD_CATEGORIES.map((c) => (
+                            <button key={c.key} className={`ptab ${mdCategory === c.key ? "active" : ""}`} onClick={() => setMdCategory(c.key)}>{c.label}</button>
+                        ))}
+                    </div>
+
+                    <div className="md-add-row">
+                        <input
+                            type="text" placeholder={`Add new ${mdCategory} option...`}
+                            value={mdNewValue} onChange={(e) => setMdNewValue(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && handleMdAdd()}
+                            className="search-input" style={{ flex: 1, maxWidth: 300 }}
+                        />
+                        <button className="btn-primary" onClick={handleMdAdd}>+ Add</button>
+                    </div>
+
+                    <div className="md-list">
+                        {mdFiltered.length === 0 && <p className="empty-message">No entries yet</p>}
+                        {mdFiltered.map((item) => (
+                            <div key={item.id} className={`md-item ${!item.is_active ? "md-item-inactive" : ""}`}>
+                                <span className="md-value">{item.value}</span>
+                                <div className="md-actions">
+                                    <label className="switch" title={item.is_active ? "Disable" : "Enable"}>
+                                        <input type="checkbox" checked={item.is_active} onChange={() => handleMdToggle(item)} />
+                                        <span className="switch-slider" />
+                                    </label>
+                                    <button className="btn-sm btn-danger" onClick={() => handleMdDelete(item.id)}>✕</button>
+                                </div>
                             </div>
                         ))}
                     </div>

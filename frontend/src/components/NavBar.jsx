@@ -35,9 +35,9 @@ export default function NavBar({ profile, currentView, onNavigate, onLogout }) {
             <div className="nav-left">
                 <span className="nav-logo" onClick={() => onNavigate("dashboard")}>Sales CRM</span>
                 <div className="nav-tabs">
-                    {["dashboard", "leads", "today", "tasks", "targets", "reports"].map((v) => (
+                    {["dashboard", "leads", "today", "tasks", "targets", "reports", "templates"].map((v) => (
                         <button key={v} className={`nav-tab ${currentView === v ? "active" : ""}`} onClick={() => onNavigate(v)}>
-                            {v.charAt(0).toUpperCase() + v.slice(1)}
+                            {v === "templates" ? "📋 Templates" : v.charAt(0).toUpperCase() + v.slice(1)}
                         </button>
                     ))}
                 </div>
