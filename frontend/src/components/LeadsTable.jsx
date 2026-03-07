@@ -259,7 +259,24 @@ export default function LeadsTable({
                                         <td className="actions-cell">
                                             <button onClick={() => onView?.(lead)} className="btn-sm" title="View details">👁</button>
                                             <button onClick={() => onEdit(lead)} className="btn-sm">Edit</button>
-                                            {lead.email && <button onClick={() => { window.location.href = `mailto:${lead.email}`; }} className="btn-sm" title={`Email ${lead.email}`}>✉️</button>}
+                                            {lead.email && (
+                                                <a
+                                                    href={`mailto:${lead.email}`}
+                                                    className="btn-sm btn-icon"
+                                                    title={`Email ${lead.email}`}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >✉️</a>
+                                            )}
+                                            {(lead.whatsapp || lead.phone) && (
+                                                <a
+                                                    href={`https://wa.me/${(lead.whatsapp || lead.phone).replace(/\D/g, "")}?text=Hello%2C%20I%20am%20reaching%20out%20regarding%20our%20EdTech%20solution%20for%20${encodeURIComponent(lead.institution_name || lead.lead_name || "your school")}.`}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="btn-sm btn-whatsapp"
+                                                    title={`WhatsApp ${lead.whatsapp || lead.phone}`}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >💬</a>
+                                            )}
                                             {canDelete && <button onClick={() => onDelete(lead)} className="btn-sm btn-danger">✕</button>}
                                         </td>
                                     </tr>

@@ -20,6 +20,8 @@ import SourcePerformance from "./components/SourcePerformance";
 import TeamProductivity from "./components/TeamProductivity";
 import TemplatesPage from "./components/TemplatesPage";
 import ApprovalsPanel from "./components/ApprovalsPanel";
+import CalendarView from "./components/CalendarView";
+import WinLossAnalysis from "./components/WinLossAnalysis";
 import "./App.css";
 
 const BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
@@ -211,8 +213,17 @@ export default function App({ session, onLogout }) {
         return <TasksPanel session={session} showToast={notify} />;
       case "targets":
         return <TargetsPanel session={session} profile={profile} showToast={notify} />;
+      case "calendar":
+        return <CalendarView leads={leads} onViewLead={(l) => setViewLead(l)} />;
+      case "win_loss":
+        return <WinLossAnalysis leads={leads} />;
       case "reports":
-        return <ReportsPage leads={leads} role={role} profile={profile} />;
+        return (
+          <>
+            <WinLossAnalysis leads={leads} />
+            <ReportsPage leads={leads} role={role} profile={profile} />
+          </>
+        );
       case "dashboard":
         return (
           <>
