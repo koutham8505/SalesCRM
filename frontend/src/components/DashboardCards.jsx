@@ -58,6 +58,23 @@ export default function DashboardCards({ leads, role, session, showMetrics = tru
         </button>
     );
 
+    // ── Compute per-department stats from leads prop ──────────────────────────
+    const deptStats = ["School", "College", "Corporate"].map(dept => {
+        const dl = (leads || []).filter(l => (l.department || "School") === dept);
+        return {
+            dept,
+            total: dl.length,
+            demos: dl.filter(l => l.stage === "Demo/Meeting").length,
+            proposals: dl.filter(l => l.proposal_sent === true || l.proposal_sent === "Yes").length,
+        };
+    });
+
+    const DEPT_META = {
+        School: { icon: "🏫", cardClass: "dept-school-card" },
+        College: { icon: "🎓", cardClass: "dept-college-card" },
+        Corporate: { icon: "🏢", cardClass: "dept-corp-card" },
+    };
+
     return (
         <div className="dashboard-container">
             {/* Error Banner */}
@@ -67,6 +84,27 @@ export default function DashboardCards({ leads, role, session, showMetrics = tru
                     <button onClick={loadMetrics} className="dash-retry-btn">Retry</button>
                 </div>
             )}
+
+            {/* ─── Department Breakdown ─── */}
+            <div className="dashboard-section">
+                <h3 className="section-title">🏢 Department Breakdown</h3>
+                <div className="dept-breakdown">
+                    {deptStats.map(({ dept, total, demos, proposals }) => (
+                        <div
+                            key={dept}
+                            className={`dept-stat-card ${DEPT_META[dept].cardClass}`}
+                            onClick={() => onDrillDown?.("all_leads")}
+                            title={`Filter by ${dept}`}
+                        >
+                            <div className="dept-stat-name">{DEPT_META[dept].icon} {dept}</div>
+                            <div className="dept-stat-count">{total}</div>
+                            <div className="dept-stat-sub">
+                                {demos} demo{demos !== 1 ? "s" : ""} · {proposals} proposal{proposals !== 1 ? "s" : ""}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
 
             {/* ─── Row 1: Summary ─── */}
             <div className="dashboard-row">

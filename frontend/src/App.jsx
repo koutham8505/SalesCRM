@@ -55,6 +55,7 @@ export default function App({ session, onLogout }) {
   const [search, setSearch] = useState("");
   const [filterTeam, setFilterTeam] = useState("");
   const [filterOwner, setFilterOwner] = useState("");
+  const [filterDept, setFilterDept] = useState("");
   const [selectedIds, setSelectedIds] = useState([]);
   const [namePrompt, setNamePrompt] = useState("");
   const [drillFilter, setDrillFilter] = useState(null);
@@ -188,6 +189,7 @@ export default function App({ session, onLogout }) {
   const handleDownloadTemplate = () => {
     const cols = [
       "lead_date", "lead_name", "job_title", "institution_name",
+      "department",
       "phone", "alt_phone", "whatsapp", "email", "website",
       "lead_source", "status", "call_status",
       "mail_sent", "pitch_deck_sent", "proposal_sent", "proposal_link",
@@ -304,6 +306,7 @@ export default function App({ session, onLogout }) {
               onImport={handleImport} onDownloadTemplate={handleDownloadTemplate}
               filterTeam={filterTeam} onFilterTeamChange={setFilterTeam}
               filterOwner={filterOwner} onFilterOwnerChange={setFilterOwner}
+              filterDept={filterDept} onFilterDeptChange={setFilterDept}
               teams={teams} owners={owners} selectedIds={selectedIds}
               leads={leads}
               onBroadcast={() => setShowBroadcast(true)}
@@ -317,7 +320,7 @@ export default function App({ session, onLogout }) {
             )}
             <LeadsTable
               leads={leads} role={role} featureFlags={profile?.feature_flags}
-              search={search} filterTeam={filterTeam} filterOwner={filterOwner}
+              search={search} filterTeam={filterTeam} filterOwner={filterOwner} filterDept={filterDept}
               selectedIds={selectedIds} onToggleSelect={toggleSelect} onSelectAll={toggleSelectAll}
               onEdit={(l) => { setEditLead(l); setShowForm(true); }}
               onDelete={handleDelete} onView={(l) => setViewLead(l)}

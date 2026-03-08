@@ -18,7 +18,7 @@ const STAGE_COLORS = {
 const today = new Date().toISOString().slice(0, 10);
 
 export default function LeadsTable({
-    leads, role, featureFlags, search, filterTeam, filterOwner,
+    leads, role, featureFlags, search, filterTeam, filterOwner, filterDept,
     selectedIds, onToggleSelect, onSelectAll, onEdit, onDelete, onView,
     drillFilter,
 }) {
@@ -36,6 +36,7 @@ export default function LeadsTable({
         }
         if (filterTeam) result = result.filter((l) => l.team === filterTeam);
         if (filterOwner) result = result.filter((l) => l.owner_id === filterOwner);
+        if (filterDept) result = result.filter((l) => (l.department || "School") === filterDept);
 
         // Drill-down filter from dashboard KPI cards
         const todayStr = new Date().toISOString().slice(0, 10);
@@ -138,7 +139,7 @@ export default function LeadsTable({
         }
 
         return result;
-    }, [leads, search, filterTeam, filterOwner, drillFilter]);
+    }, [leads, search, filterTeam, filterOwner, filterDept, drillFilter]);
 
     const allSelected = filtered.length > 0 && filtered.every((l) => selectedIds.includes(l.id));
 
@@ -177,6 +178,7 @@ export default function LeadsTable({
                                 <tr>
                                     {canBulk && <th style={{ width: 36 }}><input type="checkbox" checked={allSelected} onChange={() => onSelectAll(filtered.map((l) => l.id))} /></th>}
                                     <th>Lead Name</th>
+                                    <th>Dept</th>
                                     <th>Stage</th>
                                     <th>Next Action</th>
                                     <th>Job Title</th>
@@ -213,6 +215,13 @@ export default function LeadsTable({
                                     <tr key={lead.id} className={selectedIds.includes(lead.id) ? "row-selected" : ""}>
                                         {canBulk && <td><input type="checkbox" checked={selectedIds.includes(lead.id)} onChange={() => onToggleSelect(lead.id)} /></td>}
                                         <td><strong className="lead-name-link" onClick={() => onView?.(lead)}>{lead.lead_name || "-"}</strong></td>
+                                        <td>
+                                            {{
+                                                School: <span className="dept-badge dept-school">🏫 School</span>,
+                                                College: <span className="dept-badge dept-college">🎓 College</span>,
+                                                Corporate: <span className="dept-badge dept-corporate">🏢 Corp</span>,
+                                            }[lead.department] || <span className="dept-badge dept-school">🏫 School</span>}
+                                        </td>
                                         <td>
                                             <span className="stage-pill" style={{ background: STAGE_COLORS[lead.stage] || "#64748b", color: "#fff", padding: "2px 8px", borderRadius: 12, fontSize: 11, whiteSpace: "nowrap" }}>
                                                 {lead.stage || "New"}

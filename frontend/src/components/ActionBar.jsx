@@ -16,6 +16,7 @@ const hasFeature = (role, featureFlags, feature) => {
 // All 30 lead fields in logical order
 const ALL_LEAD_FIELDS = [
     "lead_date", "lead_name", "job_title", "institution_name",
+    "department",
     "phone", "alt_phone", "whatsapp", "email", "website",
     "lead_source", "status", "call_status",
     "mail_sent", "pitch_deck_sent", "proposal_sent", "proposal_link",
@@ -28,6 +29,7 @@ const ALL_LEAD_FIELDS = [
 export default function ActionBar({
     role, featureFlags, search, onSearchChange, onNewLead, onImport,
     onDownloadTemplate, filterTeam, onFilterTeamChange, filterOwner, onFilterOwnerChange,
+    filterDept, onFilterDeptChange,
     teams, owners, selectedIds, leads, onBroadcast,
 }) {
     const [showImport, setShowImport] = useState(false);
@@ -109,18 +111,32 @@ export default function ActionBar({
                 />
             </div>
 
-            {canFilter && (
-                <div className="filter-bar">
-                    <select value={filterTeam} onChange={(e) => onFilterTeamChange(e.target.value)} className="filter-select">
-                        <option value="">All Teams</option>
-                        {teams.map((t) => <option key={t} value={t}>{t}</option>)}
-                    </select>
-                    <select value={filterOwner} onChange={(e) => onFilterOwnerChange(e.target.value)} className="filter-select">
-                        <option value="">All Owners</option>
-                        {owners.map((o) => <option key={o.id} value={o.id}>{o.full_name}</option>)}
-                    </select>
-                </div>
-            )}
+            {/* Department filter — always visible */}
+            <div className="filter-bar">
+                <select
+                    value={filterDept}
+                    onChange={(e) => onFilterDeptChange(e.target.value)}
+                    className="filter-select dept-filter-select"
+                >
+                    <option value="">All Departments</option>
+                    <option value="School">🏫 School</option>
+                    <option value="College">🎓 College</option>
+                    <option value="Corporate">🏢 Corporate</option>
+                </select>
+
+                {canFilter && (
+                    <>
+                        <select value={filterTeam} onChange={(e) => onFilterTeamChange(e.target.value)} className="filter-select">
+                            <option value="">All Teams</option>
+                            {teams.map((t) => <option key={t} value={t}>{t}</option>)}
+                        </select>
+                        <select value={filterOwner} onChange={(e) => onFilterOwnerChange(e.target.value)} className="filter-select">
+                            <option value="">All Owners</option>
+                            {owners.map((o) => <option key={o.id} value={o.id}>{o.full_name}</option>)}
+                        </select>
+                    </>
+                )}
+            </div>
 
             {showImport && canImport && (
                 <div className="import-box">

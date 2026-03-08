@@ -8,6 +8,12 @@ const STAGE_COLORS = {
 };
 const LOST_REASONS = ["Price Too High", "No Budget", "Not Interested", "Using Competitor", "Bad Timing", "Other"];
 
+const DEPARTMENTS = [
+    { value: "School", label: "🏫 School", color: "#3b82f6" },
+    { value: "College", label: "🎓 College", color: "#8b5cf6" },
+    { value: "Corporate", label: "🏢 Corporate", color: "#f59e0b" },
+];
+
 const EMPTY_LEAD = {
     id: null, lead_date: "", lead_name: "", job_title: "", institution_name: "",
     phone: "", alt_phone: "", whatsapp: "", email: "", website: "",
@@ -17,6 +23,7 @@ const EMPTY_LEAD = {
     lead_owner: "", status: "", owner_id: "", owner_name: "", owner_email: "",
     stage: "New", lost_reason: "", next_action: "", next_action_date: "",
     tags: [],
+    department: "School",
     // School Details
     board: "", grades_offered: "", student_strength: "", fees: "",
     medium_of_instruction: "", school_type: "", tier: "", geo_classification: "",
@@ -106,6 +113,21 @@ export default function LeadForm({ lead, editing, onSave, onClose, saving, role,
     return (
         <div className="form-card">
             <h2>{editing ? "Edit Lead" : "Add New Lead"}</h2>
+
+            {/* ─── Department Selector ─── */}
+            <div className="dept-selector">
+                {DEPARTMENTS.map((d) => (
+                    <button
+                        key={d.value}
+                        type="button"
+                        className={`dept-pill ${form.department === d.value ? "dept-pill-active" : ""}`}
+                        style={form.department === d.value ? { background: d.color, borderColor: d.color, color: "#fff" } : { borderColor: d.color + "60", color: d.color }}
+                        onClick={() => setForm(prev => ({ ...prev, department: d.value }))}
+                    >
+                        {d.label}
+                    </button>
+                ))}
+            </div>
 
             {/* ─── Lock Banner ─── */}
             {isLocked && (
