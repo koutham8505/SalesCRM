@@ -19,7 +19,12 @@ const LOCKED_STAGES = ["Won", "Lost"];
 const LOCKED_FIELDS = ["lead_name", "institution_name", "phone", "email", "deal_value", "stage", "status"];
 
 const cleanForDb = (body) => {
-  const { follow_up_status, meeting_today, id, created_at, ...rest } = body;
+  // Strip virtual / computed fields that don't exist as DB columns
+  const { follow_up_status, meeting_today, id, created_at, score, ...rest } = body;
+  // Convert tags JS array → pg array format or null
+  if (rest.tags !== undefined) {
+    rest.tags = Array.isArray(rest.tags) && rest.tags.length > 0 ? rest.tags : null;
+  }
   return nullifyEmpty(rest);
 };
 
