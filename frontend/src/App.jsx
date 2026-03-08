@@ -21,6 +21,7 @@ import TeamProductivity from "./components/TeamProductivity";
 import TemplatesPage from "./components/TemplatesPage";
 import ApprovalsPanel from "./components/ApprovalsPanel";
 import CalendarView from "./components/CalendarView";
+import TeamCalendar from "./components/TeamCalendar";
 import WinLossAnalysis from "./components/WinLossAnalysis";
 import WhatsAppBroadcast from "./components/WhatsAppBroadcast";
 import AnnouncementBanner from "./components/AnnouncementBanner";
@@ -221,8 +222,28 @@ export default function App({ session, onLogout }) {
         return <TasksPanel session={session} showToast={notify} />;
       case "targets":
         return <TargetsPanel session={session} profile={profile} showToast={notify} />;
+      case "team_calendar":
+        return (
+          <TeamCalendar
+            leads={leads}
+            owners={owners}
+            role={role}
+            profile={profile}
+            onViewLead={(l) => setViewLead(l)}
+            onBack={() => setView("calendar")}
+          />
+        );
       case "calendar":
-        return <CalendarView leads={leads} onViewLead={(l) => setViewLead(l)} />;
+        return (
+          <>
+            {/* Toggle between My Calendar & Team Calendar */}
+            <div className="cal-view-toggle">
+              <button className="cal-toggle-btn cal-toggle-active">📅 My Calendar</button>
+              <button className="cal-toggle-btn" onClick={() => setView("team_calendar")}>👥 Team Calendar</button>
+            </div>
+            <CalendarView leads={leads} onViewLead={(l) => setViewLead(l)} />
+          </>
+        );
       case "win_loss":
         return <WinLossAnalysis leads={leads} />;
       case "announcements_mgmt":

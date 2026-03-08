@@ -6528,3 +6528,663 @@ tr:hover {
     color: var(--text-muted);
     margin-top: 2px;
 }
+/* ================================================================
+   CALENDAR VIEW TOGGLE (shared between CalendarView & TeamCalendar)
+================================================================ */
+.cal-view-toggle {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 4px;
+    width: fit-content;
+}
+
+.cal-toggle-btn {
+    padding: 7px 18px;
+    border-radius: 7px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.cal-toggle-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text);
+}
+
+.cal-toggle-active {
+    background: linear-gradient(135deg, #6366f1, #3b82f6) !important;
+    color: #fff !important;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
+}
+
+/* ================================================================
+   TEAM CALENDAR SHELL
+================================================================ */
+.tcal-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    height: 100%;
+    font-family: inherit;
+}
+
+/* ── Header ── */
+.tcal-header {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px 14px 0 0;
+    padding: 16px 20px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.tcal-nav-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.tcal-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.tcal-month-title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text);
+    min-width: 200px;
+    text-align: center;
+}
+
+.tcal-nav-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-hover);
+    color: var(--text);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+}
+
+.tcal-nav-btn:hover {
+    background: linear-gradient(135deg, #6366f1, #3b82f6);
+    color: #fff;
+    border-color: transparent;
+}
+
+.tcal-today-btn {
+    padding: 5px 14px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: var(--bg-hover);
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.tcal-today-btn:hover {
+    background: #6366f1;
+    color: #fff;
+    border-color: transparent;
+}
+
+.tcal-summary {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.tcal-summary-item {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.tcal-summary-total {
+    font-size: 12px;
+    font-weight: 700;
+    color: #6366f1;
+    background: rgba(99, 102, 241, 0.1);
+    border-radius: 20px;
+    padding: 2px 10px;
+}
+
+/* Filter pills */
+.tcal-filter-row {
+    display: flex;
+    align-items: center;
+}
+
+.tcal-filter-pills {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.tcal-filter-pill {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1.5px solid var(--border);
+    background: var(--bg-hover);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.tcal-filter-pill:hover {
+    border-color: #6366f1;
+    color: #6366f1;
+}
+
+.tcal-filter-pill.active {
+    background: rgba(99, 102, 241, 0.12);
+    border-color: #6366f1;
+    color: #6366f1;
+}
+
+.tcal-pill-count {
+    background: var(--bg-card);
+    border-radius: 10px;
+    padding: 0px 6px;
+    font-size: 11px;
+    min-width: 18px;
+    text-align: center;
+    border: 1px solid var(--border);
+}
+
+/* Rep chips */
+.tcal-rep-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.tcal-rep-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+
+.tcal-rep-chips {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.tcal-rep-chip {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: var(--bg-hover);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.tcal-rep-chip.hidden {
+    opacity: 0.45;
+    background: transparent;
+}
+
+.tcal-rep-chip:hover {
+    transform: translateY(-1px);
+}
+
+.tcal-rep-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.tcal-rep-hidden-x {
+    font-size: 10px;
+    color: #ef4444;
+    margin-left: 2px;
+}
+
+.tcal-rep-reset {
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px dashed var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.tcal-rep-reset:hover {
+    border-color: #6366f1;
+    color: #6366f1;
+}
+
+/* ── Body ── */
+.tcal-body {
+    display: flex;
+    flex: 1;
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 14px 14px;
+    overflow: hidden;
+    background: var(--bg-card);
+}
+
+/* ── Grid ── */
+.tcal-grid-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+}
+
+.tcal-day-headers {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    background: var(--bg-hover);
+    border-bottom: 1px solid var(--border);
+}
+
+.tcal-day-head {
+    padding: 8px 0;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+}
+
+.tcal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    flex: 1;
+}
+
+.tcal-cell {
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 6px;
+    min-height: 100px;
+    cursor: pointer;
+    transition: background 0.12s;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.tcal-cell:hover {
+    background: var(--bg-hover);
+}
+
+.tcal-cell-empty {
+    cursor: default;
+    background: var(--bg-input);
+    opacity: 0.4;
+}
+
+.tcal-today {
+    background: rgba(99, 102, 241, 0.06) !important;
+}
+
+.tcal-today .tcal-cell-num {
+    background: linear-gradient(135deg, #6366f1, #3b82f6);
+    color: #fff;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tcal-selected {
+    background: rgba(99, 102, 241, 0.1) !important;
+    outline: 2px solid #6366f1;
+    outline-offset: -2px;
+}
+
+.tcal-has-events {}
+
+.tcal-cell-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2px;
+}
+
+.tcal-cell-num {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tcal-rep-dots {
+    display: flex;
+    gap: 2px;
+    flex-wrap: wrap;
+}
+
+.tcal-rep-dot-mini {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.tcal-cell-events {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.tcal-chip {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 5px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    transition: opacity 0.1s;
+    overflow: hidden;
+}
+
+.tcal-chip:hover {
+    opacity: 0.8;
+}
+
+.tcal-chip-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.tcal-chip-type {
+    font-size: 10px;
+    flex-shrink: 0;
+}
+
+.tcal-chip-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text);
+    font-weight: 500;
+}
+
+.tcal-more-badge {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 600;
+    padding: 1px 4px;
+    cursor: pointer;
+}
+
+/* ── Sidebar ── */
+.tcal-sidebar {
+    width: 0;
+    overflow: hidden;
+    transition: width 0.25s ease;
+    border-left: 0px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-card);
+}
+
+.tcal-sidebar-open {
+    width: 300px;
+    border-left: 1px solid var(--border);
+}
+
+.tcal-sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 14px 14px 10px;
+    border-bottom: 1px solid var(--border);
+    gap: 8px;
+}
+
+.tcal-sidebar-date {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.tcal-sidebar-count {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.tcal-sidebar-close {
+    background: none;
+    border: none;
+    font-size: 14px;
+    color: var(--text-muted);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: color 0.15s;
+}
+
+.tcal-sidebar-close:hover {
+    color: #ef4444;
+}
+
+.tcal-sidebar-events {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+}
+
+.tcal-sidebar-empty,
+.tcal-sidebar-hint {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 20px;
+    color: var(--text-muted);
+    font-size: 13px;
+    text-align: center;
+}
+
+.tcal-hint-icon {
+    font-size: 32px;
+}
+
+.tcal-hint-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.tcal-hint-sub {
+    font-size: 12px;
+}
+
+.tcal-hint-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 8px;
+    width: 100%;
+    padding: 10px;
+    background: var(--bg-hover);
+    border-radius: 8px;
+}
+
+.tcal-hint-rep {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text);
+    font-weight: 500;
+}
+
+/* Sidebar event card */
+.tcal-sidebar-ev {
+    border-radius: 10px;
+    padding: 10px 12px;
+    background: var(--bg-hover);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    border-left: 4px solid #6366f1;
+}
+
+.tcal-sb-ev-header {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-wrap: wrap;
+}
+
+.tcal-sb-rep-badge {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 800;
+    flex-shrink: 0;
+}
+
+.tcal-sb-rep-name {
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.tcal-sb-ev-type {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-left: auto;
+}
+
+.tcal-sb-ev-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    cursor: pointer;
+    transition: color 0.15s;
+}
+
+.tcal-sb-ev-name:hover {
+    color: #6366f1;
+}
+
+.tcal-sb-ev-inst,
+.tcal-sb-ev-phone {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.tcal-sb-ev-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 3px;
+}
+
+.tcal-stage-pill {
+    font-size: 10px;
+    font-weight: 700;
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+.tcal-sb-view-btn {
+    background: none;
+    border: none;
+    color: #6366f1;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+
+.tcal-sb-view-btn:hover {
+    opacity: 0.7;
+}
+
+/* ── Legend Row ── */
+.tcal-legend-row {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    padding: 10px 4px 0;
+    border-top: none;
+}
+
+.tcal-legend-events,
+.tcal-legend-reps {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.tcal-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 500;
+}
