@@ -229,6 +229,7 @@ export default function App({ session, onLogout }) {
             owners={owners}
             role={role}
             profile={profile}
+            token={session?.access_token}
             onViewLead={(l) => setViewLead(l)}
             onBack={() => setView("calendar")}
           />

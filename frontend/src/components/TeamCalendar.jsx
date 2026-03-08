@@ -1,5 +1,7 @@
 // D:\SalesCRM\frontend\src\components\TeamCalendar.jsx
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+
+const BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -84,13 +86,43 @@ function TeamEventChip({ ev, onClick }) {
 }
 
 // ── Main component ─────────────────────────────────────────────
-export default function TeamCalendar({ leads, owners, role, profile, onViewLead, onBack }) {
+export default function TeamCalendar({ leads, owners: ownersProp, role, profile, onViewLead, onBack, token }) {
     const now = new Date();
     const [year, setYear] = useState(now.getFullYear());
     const [month, setMonth] = useState(now.getMonth());
     const [selectedDay, setSelectedDay] = useState(null);
     const [filterType, setFilterType] = useState("all");
-    const [hiddenReps, setHiddenReps] = useState(new Set()); // toggle reps off
+    const [hiddenReps, setHiddenReps] = useState(new Set());
+    const [fetchedOwners, setFetchedOwners] = useState([]);
+
+    // Fetch owners ourselves so we don't depend on feature-flag gating in App.jsx
+    useEffect(() => {
+        if (!token) return;
+        fetch(`${BASE}/api/leads/owners`, {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+            .then(r => r.ok ? r.json() : [])
+            .then(d => Array.isArray(d) && d.length > 0 && setFetchedOwners(d))
+            .catch(() => { });
+    }, [token]);
+
+    // Merge: fetched owners > prop owners > fallback from leads data
+    const owners = useMemo(() => {
+        if (fetchedOwners.length > 0) return fetchedOwners;
+        if (ownersProp && ownersProp.length > 0) return ownersProp;
+        // Build from leads: unique owner ids with names from lead data
+        const seen = new Map();
+        leads.forEach(l => {
+            if (l.lead_owner && !seen.has(l.lead_owner)) {
+                seen.set(l.lead_owner, {
+                    id: l.lead_owner,
+                    full_name: l.owner_name || l.lead_owner_name || "Rep " + seen.size + 1,
+                    email: "",
+                });
+            }
+        });
+        return [...seen.values()];
+    }, [fetchedOwners, ownersProp, leads]);
 
     const repMap = useMemo(() => buildRepMap(owners), [owners]);
     const eventMap = useMemo(() => buildEventMap(leads, repMap), [leads, repMap]);
