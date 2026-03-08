@@ -337,11 +337,11 @@ exports.bulkUpdateLeads = async (req, res) => {
 
 exports.getOwners = async (req, res) => {
   try {
-    // Sync: ensure all auth users have a profile row
+    // Sync: ensure all auth users have a profile row (light version)
     const { data: authData } = await supabase.auth.admin.listUsers();
     const authUsers = authData?.users || [];
-    const { data: profiles } = await supabase.from("profiles").select("id");
-    const profileIds = new Set((profiles || []).map(p => p.id));
+    const { data: existingProfiles } = await supabase.from("profiles").select("id");
+    const profileIds = new Set((existingProfiles || []).map(p => p.id));
     const missing = authUsers.filter(u => !profileIds.has(u.id));
     if (missing.length > 0) {
       await supabase.from("profiles").upsert(
@@ -355,10 +355,11 @@ exports.getOwners = async (req, res) => {
         { onConflict: "id" }
       );
     }
+    // Fetch all non-disabled users (null is_active counts as active)
     const { data, error } = await supabase
       .from("profiles")
       .select("id, full_name, role, team, department, team_lead_id")
-      .eq("is_active", true)
+      .neq("is_active", false)
       .order("full_name");
     if (error) throw error;
     res.json(data || []);

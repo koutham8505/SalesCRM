@@ -26,6 +26,7 @@ export default function AdminPanel({ session, showToast }) {
     const [editUser, setEditUser] = useState(null);
     const [search, setSearch] = useState("");
     const [merging, setMerging] = useState(null);
+    const [confirmDisable, setConfirmDisable] = useState(null); // id of user pending confirm
     const auth = { Authorization: `Bearer ${session?.access_token}`, "Content-Type": "application/json" };
 
     const fetchUsers = useCallback(async () => {
@@ -75,12 +76,14 @@ export default function AdminPanel({ session, showToast }) {
     };
 
     const handleToggleActive = async (id) => {
-        if (!confirm("Toggle user status?")) return;
         try {
             const r = await fetch(`${ADMIN_API}/users/${id}/toggle-active`, { method: "PUT", headers: auth });
             if (!r.ok) throw new Error((await r.json()).message);
-            const d = await r.json(); showToast(d.is_active ? "User enabled" : "User disabled", "success"); fetchUsers();
-        } catch (err) { showToast(err.message, "error"); }
+            const d = await r.json();
+            showToast(d.is_active ? "User enabled ✅" : "User disabled", "success");
+            setConfirmDisable(null);
+            fetchUsers();
+        } catch (err) { showToast(err.message, "error"); setConfirmDisable(null); }
     };
 
     const handleRequestAction = async (id, status, apply_flags) => {
@@ -172,7 +175,20 @@ export default function AdminPanel({ session, showToast }) {
                                             <td><span className={`status-chip ${u.is_active !== false ? "status-won" : "status-loss"}`}>{u.is_active !== false ? "Active" : "Disabled"}</span></td>
                                             <td className="actions-cell">
                                                 <button className="btn-sm" onClick={() => setEditUser({ ...u, feature_flags: u.feature_flags || {} })}>Edit</button>
-                                                <button className={`btn-sm ${u.is_active !== false ? "btn-danger" : ""}`} onClick={() => handleToggleActive(u.id)}>{u.is_active !== false ? "Disable" : "Enable"}</button>
+                                                {confirmDisable === u.id ? (
+                                                    <>
+                                                        <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Sure?</span>
+                                                        <button className="btn-sm btn-danger" onClick={() => handleToggleActive(u.id)}>✓</button>
+                                                        <button className="btn-sm" onClick={() => setConfirmDisable(null)}>✕</button>
+                                                    </>
+                                                ) : (
+                                                    <button
+                                                        className={`btn-sm ${u.is_active !== false ? "btn-danger" : "btn-success-outline"}`}
+                                                        onClick={() => u.is_active !== false ? setConfirmDisable(u.id) : handleToggleActive(u.id)}
+                                                    >
+                                                        {u.is_active !== false ? "Disable" : "Enable"}
+                                                    </button>
+                                                )}
                                             </td>
                                         </tr>
                                     ))}
