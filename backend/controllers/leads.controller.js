@@ -332,7 +332,6 @@ exports.bulkUpdateLeads = async (req, res) => {
 
 exports.getOwners = async (req, res) => {
   try {
-    if (!hasFeature(req.user, "team_filters")) return res.status(403).json({ message: "Not allowed" });
     const { data, error } = await supabase.from("profiles").select("id, full_name, role, team").order("full_name");
     if (error) throw error;
     res.json(data || []);

@@ -51,7 +51,8 @@ function buildEventMap(leads, repMap) {
 
     leads.forEach(l => {
         const name = l.lead_name || l.institution_name || "Lead";
-        const repInfo = repMap[l.lead_owner] || { name: "Unassigned", color: "#94a3b8", initials: "?" };
+        // owner_id is the actual DB field linking to profiles.id
+        const repInfo = repMap[l.owner_id] || { name: "Unassigned", color: "#94a3b8", initials: "?" };
 
         if (l.meeting_date)
             add(l.meeting_date, { type: "meeting", lead: l, label: name, rep: repInfo, date: l.meeting_date });
@@ -106,22 +107,25 @@ export default function TeamCalendar({ leads, owners: ownersProp, role, profile,
             .catch(() => { });
     }, [token]);
 
-    // Merge: fetched owners > prop owners > fallback from leads data
+    // Merge: fetched owners > prop owners > fallback built from leads
     const owners = useMemo(() => {
-        if (fetchedOwners.length > 0) return fetchedOwners;
-        if (ownersProp && ownersProp.length > 0) return ownersProp;
-        // Build from leads: unique owner ids with names from lead data
-        const seen = new Map();
-        leads.forEach(l => {
-            if (l.lead_owner && !seen.has(l.lead_owner)) {
-                seen.set(l.lead_owner, {
-                    id: l.lead_owner,
-                    full_name: l.owner_name || l.lead_owner_name || "Rep " + seen.size + 1,
-                    email: "",
+        // Always start with leads-derived map (most reliable since owner_id matches profiles.id)
+        const fromLeads = new Map();
+        leads.forEach((l, idx) => {
+            if (l.owner_id && !fromLeads.has(l.owner_id)) {
+                // Try to find name from fetched or prop owners list
+                const found = [...fetchedOwners, ...(ownersProp || [])].find(o => o.id === l.owner_id);
+                fromLeads.set(l.owner_id, {
+                    id: l.owner_id,
+                    full_name: found?.full_name || found?.email || l.assigned_to || ("Rep " + (fromLeads.size + 1)),
+                    email: found?.email || "",
                 });
             }
         });
-        return [...seen.values()];
+        if (fromLeads.size > 0) return [...fromLeads.values()];
+        if (fetchedOwners.length > 0) return fetchedOwners;
+        if (ownersProp && ownersProp.length > 0) return ownersProp;
+        return [];
     }, [fetchedOwners, ownersProp, leads]);
 
     const repMap = useMemo(() => buildRepMap(owners), [owners]);
