@@ -10,12 +10,46 @@ const requireAdmin = (req, res, next) => {
 // GET /api/admin/users
 const listUsers = async (req, res) => {
     try {
-        const { data, error } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
-        if (error) throw error;
-        const { data: authUsers } = await supabase.auth.admin.listUsers();
-        const emailMap = {};
-        if (authUsers?.users) authUsers.users.forEach((u) => (emailMap[u.id] = u.email));
-        const enriched = (data || []).map((p) => ({ ...p, email: emailMap[p.id] || "unknown" }));
+        // 1. Get all auth users (source of truth)
+        const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
+        if (authError) throw authError;
+        const authUsers = authData?.users || [];
+
+        // 2. Get all profiles
+        const { data: profiles } = await supabase.from("profiles").select("*");
+        const profileMap = {};
+        (profiles || []).map(p => profileMap[p.id] = p);
+
+        // 3. Auto-create missing profile rows for any auth user without one
+        const missing = authUsers.filter(u => !profileMap[u.id]);
+        if (missing.length > 0) {
+            const toInsert = missing.map(u => ({
+                id: u.id,
+                full_name: u.user_metadata?.full_name || u.email?.split("@")[0] || "New User",
+                role: u.user_metadata?.role || "Executive",
+                team: u.user_metadata?.team || null,
+                is_active: true,
+            }));
+            const { data: inserted } = await supabase.from("profiles").upsert(toInsert, { onConflict: "id" }).select();
+            (inserted || []).forEach(p => profileMap[p.id] = p);
+        }
+
+        // 4. Build enriched list: every auth user, with their profile data
+        const enriched = authUsers.map(u => {
+            const profile = profileMap[u.id] || {};
+            return {
+                id: u.id,
+                email: u.email || "unknown",
+                full_name: profile.full_name || u.user_metadata?.full_name || u.email?.split("@")[0] || "Unknown",
+                role: profile.role || u.user_metadata?.role || "Executive",
+                team: profile.team || u.user_metadata?.team || null,
+                is_active: profile.is_active !== false,
+                feature_flags: profile.feature_flags || {},
+                created_at: u.created_at,
+                deleted_at: profile.deleted_at || null,
+            };
+        }).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
         res.json(enriched);
     } catch (err) {
         console.error("listUsers error:", err);
