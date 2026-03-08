@@ -7345,3 +7345,14 @@ tr:hover {
   font-size: 11px;
   color: var(--text-faint);
 }
+
+/* auto-badge for non-privileged users in LeadForm */
+.dept-auto-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: var(--bg-card2);
+  border-bottom: 1px solid var(--border);
+  border-radius: 12px 12px 0 0;
+}

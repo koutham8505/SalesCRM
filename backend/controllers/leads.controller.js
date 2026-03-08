@@ -337,10 +337,33 @@ exports.bulkUpdateLeads = async (req, res) => {
 
 exports.getOwners = async (req, res) => {
   try {
-    const { data, error } = await supabase.from("profiles").select("id, full_name, role, team").order("full_name");
+    // Sync: ensure all auth users have a profile row
+    const { data: authData } = await supabase.auth.admin.listUsers();
+    const authUsers = authData?.users || [];
+    const { data: profiles } = await supabase.from("profiles").select("id");
+    const profileIds = new Set((profiles || []).map(p => p.id));
+    const missing = authUsers.filter(u => !profileIds.has(u.id));
+    if (missing.length > 0) {
+      await supabase.from("profiles").upsert(
+        missing.map(u => ({
+          id: u.id,
+          full_name: u.user_metadata?.full_name || u.email?.split("@")[0] || "User",
+          role: u.user_metadata?.role || "Executive",
+          team: u.user_metadata?.team || null,
+          is_active: true,
+        })),
+        { onConflict: "id" }
+      );
+    }
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, full_name, role, team, department, team_lead_id")
+      .eq("is_active", true)
+      .order("full_name");
     if (error) throw error;
     res.json(data || []);
   } catch (err) {
+    console.error("getOwners error:", err);
     res.status(500).json({ message: "Failed to load owners" });
   }
 };

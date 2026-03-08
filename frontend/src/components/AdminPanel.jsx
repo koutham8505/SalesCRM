@@ -58,7 +58,17 @@ export default function AdminPanel({ session, showToast }) {
     const handleUserSave = async () => {
         if (!editUser) return;
         try {
-            const r = await fetch(`${ADMIN_API}/users/${editUser.id}`, { method: "PUT", headers: auth, body: JSON.stringify({ full_name: editUser.full_name, role: editUser.role, team: editUser.team, feature_flags: editUser.feature_flags }) });
+            const r = await fetch(`${ADMIN_API}/users/${editUser.id}`, {
+                method: "PUT", headers: auth,
+                body: JSON.stringify({
+                    full_name: editUser.full_name,
+                    role: editUser.role,
+                    team: editUser.team,
+                    department: editUser.department,
+                    team_lead_id: editUser.team_lead_id || null,
+                    feature_flags: editUser.feature_flags,
+                })
+            });
             if (!r.ok) throw new Error((await r.json()).message);
             showToast("User updated", "success"); setEditUser(null); fetchUsers();
         } catch (err) { showToast(err.message, "error"); }
@@ -134,6 +144,7 @@ export default function AdminPanel({ session, showToast }) {
             <h2>🔧 Admin Panel</h2>
             <div className="admin-tabs">
                 <button className={`ptab ${tab === "users" ? "active" : ""}`} onClick={() => setTab("users")}>Users ({users.length})</button>
+                <button className={`ptab ${tab === "team_map" ? "active" : ""}`} onClick={() => setTab("team_map")}>🗂️ Team Map</button>
                 <button className={`ptab ${tab === "requests" ? "active" : ""}`} onClick={() => setTab("requests")}>Feature Requests {pendingCount > 0 && `(${pendingCount})`}</button>
                 <button className={`ptab ${tab === "audit" ? "active" : ""}`} onClick={() => setTab("audit")}>Audit Log</button>
                 <button className={`ptab ${tab === "validation" ? "active" : ""}`} onClick={() => setTab("validation")}>Validation Rules</button>
@@ -177,7 +188,22 @@ export default function AdminPanel({ session, showToast }) {
                                 <label>Role<select value={editUser.role} onChange={(e) => setEditUser({ ...editUser, role: e.target.value })}>
                                     <option value="Executive">Executive</option><option value="TeamLead">TeamLead</option><option value="Manager">Manager</option><option value="Admin">Admin</option>
                                 </select></label>
+                                <label>Department<select value={editUser.department || "School"} onChange={(e) => setEditUser({ ...editUser, department: e.target.value })}>
+                                    <option value="School">🏫 School</option>
+                                    <option value="College">🎓 College</option>
+                                    <option value="Corporate">🏢 Corporate</option>
+                                </select></label>
                                 <label>Team<input value={editUser.team || ""} onChange={(e) => setEditUser({ ...editUser, team: e.target.value })} /></label>
+                                {(editUser.role === "Executive" || editUser.role === "TeamLead") && (
+                                    <label>Reports To (Team Lead)
+                                        <select value={editUser.team_lead_id || ""} onChange={(e) => setEditUser({ ...editUser, team_lead_id: e.target.value || null })}>
+                                            <option value="">— None —</option>
+                                            {users.filter(u => u.role === "TeamLead" || u.role === "Manager").map(u => (
+                                                <option key={u.id} value={u.id}>{u.full_name} ({u.role})</option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                )}
                                 <fieldset className="form-section" style={{ marginTop: 12 }}>
                                     <legend>Feature Flags</legend>
                                     {["import", "bulk_update", "delete", "team_filters", "sensitive_fields"].map((flag) => (
@@ -196,6 +222,55 @@ export default function AdminPanel({ session, showToast }) {
                     )}
                 </div>
             )}
+
+            {/* Team Map */}
+            {tab === "team_map" && (() => {
+                const teamLeads = users.filter(u => u.role === "TeamLead" || u.role === "Manager");
+                const executives = users.filter(u => u.role === "Executive");
+                const DEPT_COLORS = { School: "#3b82f6", College: "#8b5cf6", Corporate: "#f59e0b" };
+                return (
+                    <div className="admin-section">
+                        <h3>🗂️ Team Structure Map</h3>
+                        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 16 }}>Shows which Executives report to which Team Lead. Use "Edit" on a user to assign their Team Lead.</p>
+                        <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                            {teamLeads.map(tl => {
+                                const myExecs = executives.filter(e => e.team_lead_id === tl.id);
+                                const dept = tl.department || "School";
+                                return (
+                                    <div key={tl.id} style={{ background: "var(--bg-card)", border: `2px solid ${DEPT_COLORS[dept]}40`, borderTop: `3px solid ${DEPT_COLORS[dept]}`, borderRadius: 12, padding: "16px 20px", minWidth: 220, flex: "1 1 220px" }}>
+                                        <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>{tl.full_name}</div>
+                                        <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 10 }}>{tl.role} · <span className={`dept-badge dept-${dept.toLowerCase()}`}>{dept}</span></div>
+                                        {myExecs.length === 0 ? (
+                                            <div style={{ fontSize: 12, color: "var(--text-faint)", fontStyle: "italic" }}>No executives assigned</div>
+                                        ) : myExecs.map(e => (
+                                            <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0", borderBottom: "1px solid var(--border)", fontSize: 13 }}>
+                                                <span>👤</span>
+                                                <span style={{ flex: 1 }}>{e.full_name}</span>
+                                                <span className={`dept-badge dept-${(e.department || "School").toLowerCase()}`}>{e.department || "School"}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                );
+                            })}
+                            {teamLeads.length === 0 && <p className="empty-message">No Team Leads found. Assign TeamLead role to users first.</p>}
+                        </div>
+                        <div style={{ marginTop: 20 }}>
+                            <h4 style={{ fontSize: 14, marginBottom: 8 }}>Unassigned Executives</h4>
+                            {executives.filter(e => !e.team_lead_id).length === 0 ? (
+                                <p style={{ fontSize: 13, color: "var(--text-faint)" }}>✅ All executives are assigned</p>
+                            ) : (
+                                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                    {executives.filter(e => !e.team_lead_id).map(e => (
+                                        <div key={e.id} style={{ background: "var(--bg-card2)", border: "1px solid var(--border)", borderRadius: 8, padding: "6px 12px", fontSize: 13 }}>
+                                            👤 {e.full_name} <span className={`dept-badge dept-${(e.department || "School").toLowerCase()}`}>{e.department || "School"}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+            })()}
 
             {/* Feature Requests */}
             {tab === "requests" && (

@@ -30,8 +30,13 @@ const EMPTY_LEAD = {
 };
 
 export default function LeadForm({ lead, editing, onSave, onClose, saving, role, owners, profile }) {
+    // For Executives and TeamLeads: auto-assign their profile's department
+    const isPrivileged = role === "Admin" || role === "Manager";
+    const canChangeDept = isPrivileged; // only Admin/Manager can pick department
+    const profileDept = profile?.department || "School";
+
     const [form, setForm] = useState(() => {
-        if (!lead) return { ...EMPTY_LEAD };
+        if (!lead) return { ...EMPTY_LEAD, department: isPrivileged ? "School" : profileDept };
         return {
             ...EMPTY_LEAD, ...lead,
             lead_date: lead.lead_date ? lead.lead_date.slice(0, 10) : "",
@@ -40,12 +45,13 @@ export default function LeadForm({ lead, editing, onSave, onClose, saving, role,
             meeting_date: lead.meeting_date ? lead.meeting_date.slice(0, 16) : "",
             proposal_sent: lead.proposal_sent || false,
             stage: lead.stage || "New",
+            // Non-privileged users: always use their own dept
+            department: isPrivileged ? (lead.department || "School") : profileDept,
         };
     });
     const [errors, setErrors] = useState({});
 
     const canChangeOwner = role === "Manager" || role === "Admin";
-    const isPrivileged = role === "Admin" || role === "Manager";
 
     // Lock key fields if lead is Won/Lost and user is not Manager/Admin
     const isLocked = editing && (form.stage === "Won" || form.stage === "Lost") && !isPrivileged;
@@ -114,20 +120,31 @@ export default function LeadForm({ lead, editing, onSave, onClose, saving, role,
         <div className="form-card">
             <h2>{editing ? "Edit Lead" : "Add New Lead"}</h2>
 
-            {/* ─── Department Selector ─── */}
-            <div className="dept-selector">
-                {DEPARTMENTS.map((d) => (
-                    <button
-                        key={d.value}
-                        type="button"
-                        className={`dept-pill ${form.department === d.value ? "dept-pill-active" : ""}`}
-                        style={form.department === d.value ? { background: d.color, borderColor: d.color, color: "#fff" } : { borderColor: d.color + "60", color: d.color }}
-                        onClick={() => setForm(prev => ({ ...prev, department: d.value }))}
-                    >
-                        {d.label}
-                    </button>
-                ))}
-            </div>
+            {/* ─── Department Selector — Admin/Manager only ─── */}
+            {canChangeDept ? (
+                <div className="dept-selector">
+                    {DEPARTMENTS.map((d) => (
+                        <button
+                            key={d.value}
+                            type="button"
+                            className={`dept-pill ${form.department === d.value ? "dept-pill-active" : ""}`}
+                            style={form.department === d.value ? { background: d.color, borderColor: d.color, color: "#fff" } : { borderColor: d.color + "60", color: d.color }}
+                            onClick={() => setForm(prev => ({ ...prev, department: d.value }))}
+                        >
+                            {d.label}
+                        </button>
+                    ))}
+                </div>
+            ) : (
+                <div className="dept-auto-badge">
+                    <span style={{ fontSize: 12, color: "var(--text-muted)", marginRight: 6 }}>Department:</span>
+                    {{
+                        School: <span className="dept-badge dept-school">🏫 School</span>,
+                        College: <span className="dept-badge dept-college">🎓 College</span>,
+                        Corporate: <span className="dept-badge dept-corporate">🏢 Corporate</span>,
+                    }[form.department] || <span className="dept-badge dept-school">🏫 School</span>}
+                </div>
+            )}
 
             {/* ─── Lock Banner ─── */}
             {isLocked && (

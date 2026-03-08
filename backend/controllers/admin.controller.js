@@ -61,11 +61,13 @@ const listUsers = async (req, res) => {
 const updateUser = async (req, res) => {
     try {
         const { id } = req.params;
-        const { full_name, role, team, feature_flags } = req.body;
+        const { full_name, role, team, department, team_lead_id, feature_flags } = req.body;
         const updates = {};
         if (full_name !== undefined) updates.full_name = full_name;
         if (role !== undefined) updates.role = role;
         if (team !== undefined) updates.team = team;
+        if (department !== undefined) updates.department = department;
+        if (team_lead_id !== undefined) updates.team_lead_id = team_lead_id;
         if (feature_flags !== undefined) updates.feature_flags = feature_flags;
         if (Object.keys(updates).length === 0) return res.status(400).json({ message: "No fields" });
 
@@ -79,6 +81,7 @@ const updateUser = async (req, res) => {
         logAudit(req.user.id, req.user.email, "USER_UPDATE", id, "profiles", updates);
         res.json(data[0]);
     } catch (err) {
+        console.error("updateUser error:", err);
         res.status(500).json({ message: "User update failed" });
     }
 };
@@ -89,8 +92,24 @@ const toggleUserActive = async (req, res) => {
         const { id } = req.params;
         if (id === req.user.id) return res.status(400).json({ message: "Cannot disable yourself" });
 
-        const { data: current } = await supabase.from("profiles").select("is_active").eq("id", id).single();
-        const newActive = !(current?.is_active ?? true);
+        // Ensure profile row exists first
+        const { data: existing } = await supabase.from("profiles").select("id, is_active").eq("id", id).single();
+        if (!existing) {
+            // Auto-create profile for this auth user
+            const { data: authUser } = await supabase.auth.admin.getUserById(id);
+            const u = authUser?.user;
+            if (!u) return res.status(404).json({ message: "User not found" });
+            await supabase.from("profiles").insert({
+                id: u.id,
+                full_name: u.user_metadata?.full_name || u.email?.split("@")[0] || "User",
+                role: u.user_metadata?.role || "Executive",
+                team: u.user_metadata?.team || null,
+                is_active: true,
+            });
+        }
+
+        const currentActive = existing?.is_active ?? true;
+        const newActive = !currentActive;
 
         const { data, error } = await supabase.from("profiles")
             .update({ is_active: newActive, deleted_at: newActive ? null : new Date().toISOString() })
@@ -100,6 +119,7 @@ const toggleUserActive = async (req, res) => {
         logAudit(req.user.id, req.user.email, newActive ? "USER_ENABLE" : "USER_DISABLE", id, "profiles", null);
         res.json({ is_active: newActive, user: data[0] });
     } catch (err) {
+        console.error("toggleUserActive error:", err);
         res.status(500).json({ message: "Failed to update user status" });
     }
 };
