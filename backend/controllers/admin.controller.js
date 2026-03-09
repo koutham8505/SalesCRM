@@ -28,6 +28,7 @@ const listUsers = async (req, res) => {
                 full_name: u.user_metadata?.full_name || u.email?.split("@")[0] || "New User",
                 role: u.user_metadata?.role || "Executive",
                 team: u.user_metadata?.team || null,
+                department: u.user_metadata?.department || u.user_metadata?.team || "School",
                 is_active: true,
             }));
             const { data: inserted } = await supabase.from("profiles").upsert(toInsert, { onConflict: "id" }).select();
