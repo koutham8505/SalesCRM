@@ -72,22 +72,44 @@ const updateUser = async (req, res) => {
         if (department !== undefined) updates.department = department;
         if (team_lead_id !== undefined) updates.team_lead_id = team_lead_id;
         if (feature_flags !== undefined) updates.feature_flags = feature_flags;
-        if (Object.keys(updates).length === 0) return res.status(400).json({ message: "No fields" });
+        if (Object.keys(updates).length === 0) return res.status(400).json({ message: "No fields to update" });
 
-        const { data, error } = await supabase.from("profiles").update(updates).eq("id", id).select();
-        if (error) throw error;
+        // Pass 1: Try full update (requires department + team_lead_id columns in profiles)
+        let { data, error } = await supabase.from("profiles").update(updates).eq("id", id).select();
+
+        if (error) {
+            console.warn("updateUser full pass failed:", error.message, "— falling back to base fields");
+            // Pass 2: Fallback — only update columns guaranteed to exist
+            const base = {};
+            if (full_name !== undefined) base.full_name = full_name;
+            if (role !== undefined) base.role = role;
+            if (team !== undefined) base.team = team;
+            if (feature_flags !== undefined) base.feature_flags = feature_flags;
+            ({ data, error } = await supabase.from("profiles").update(base).eq("id", id).select());
+            if (error) throw error;
+            await supabase.auth.admin.updateUserById(id, {
+                user_metadata: { full_name: base.full_name || data[0]?.full_name, role: base.role || data[0]?.role },
+            });
+            logAudit(req.user.id, req.user.email, "USER_UPDATE", id, "profiles", base);
+            return res.json({ ...data[0], _warning: "Run SQL migration to enable department/team_lead_id" });
+        }
 
         await supabase.auth.admin.updateUserById(id, {
-            user_metadata: { full_name: updates.full_name || data[0]?.full_name, role: updates.role || data[0]?.role, team: updates.team !== undefined ? updates.team : data[0]?.team },
+            user_metadata: {
+                full_name: updates.full_name || data[0]?.full_name,
+                role: updates.role || data[0]?.role,
+                team: updates.team !== undefined ? updates.team : data[0]?.team,
+                department: updates.department || data[0]?.department,
+            },
         });
-
         logAudit(req.user.id, req.user.email, "USER_UPDATE", id, "profiles", updates);
         res.json(data[0]);
     } catch (err) {
         console.error("updateUser error:", err);
-        res.status(500).json({ message: "User update failed" });
+        res.status(500).json({ message: `User update failed: ${err.message}` });
     }
 };
+
 
 // PUT /api/admin/users/:id/toggle-active
 const toggleUserActive = async (req, res) => {
