@@ -235,50 +235,252 @@ export default function AdminPanel({ session, showToast }) {
                 </div>
             )}
 
-            {/* Team Map */}
+            {/* Team Map — 3-Level Reporting Tree */}
             {tab === "team_map" && (() => {
-                const teamLeads = users.filter(u => u.role === "TeamLead" || u.role === "Manager");
-                const executives = users.filter(u => u.role === "Executive");
+                const DEPTS = ["School", "College", "Corporate"];
                 const DEPT_COLORS = { School: "#3b82f6", College: "#8b5cf6", Corporate: "#f59e0b" };
+                const DEPT_ICONS = { School: "🏫", College: "🎓", Corporate: "🏢" };
+                const DEPT_LIGHT = { School: "#eff6ff", College: "#f5f3ff", Corporate: "#fffbeb" };
+
+                const managers = users.filter(u => u.role === "Manager" || u.role === "Admin");
+                const teamLeads = users.filter(u => u.role === "TeamLead");
+                const executives = users.filter(u => u.role === "Executive");
+
+                // Quick assign state
+                const [quickAssign, setQuickAssign] = React.useState({});
+                const [assignLoading, setAssignLoading] = React.useState(null);
+
+                const handleQuickAssign = async (userId, reportTo) => {
+                    setAssignLoading(userId);
+                    try {
+                        const r = await fetch(`${ADMIN_API}/users/${userId}`, {
+                            method: "PUT", headers: auth,
+                            body: JSON.stringify({ team_lead_id: reportTo || null }),
+                        });
+                        if (!r.ok) throw new Error((await r.json()).message);
+                        showToast("Reporting assigned ✅", "success");
+                        fetchUsers();
+                    } catch (e) { showToast(e.message, "error"); }
+                    finally { setAssignLoading(null); setQuickAssign({}); }
+                };
+
+                const NodeCard = ({ user, level = 0, accentColor }) => (
+                    <div style={{
+                        background: level === 0 ? "var(--bg-card)" : level === 1 ? "var(--bg-card2, #f8fafc)" : "var(--bg)",
+                        border: `1.5px solid ${accentColor}${level === 0 ? "80" : "40"}`,
+                        borderLeft: `3px solid ${accentColor}`,
+                        borderRadius: 10, padding: "10px 14px",
+                        marginBottom: level === 2 ? 6 : 0,
+                        fontSize: 13,
+                        boxShadow: level === 0 ? "0 2px 8px rgba(0,0,0,0.06)" : "none",
+                        opacity: assignLoading === user.id ? 0.6 : 1,
+                        transition: "opacity 0.2s",
+                    }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <span style={{ fontSize: 18 }}>
+                                {level === 0 ? "👑" : level === 1 ? "🧑‍💼" : "👤"}
+                            </span>
+                            <div style={{ flex: 1 }}>
+                                <div style={{ fontWeight: 700, color: "var(--text-primary)", lineHeight: 1.2 }}>
+                                    {user.full_name}
+                                </div>
+                                <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
+                                    <span style={{
+                                        background: accentColor + "20", color: accentColor,
+                                        padding: "1px 6px", borderRadius: 4, fontWeight: 600, marginRight: 4,
+                                    }}>{user.role}</span>
+                                    {user.department && (
+                                        <span style={{ color: "var(--text-faint)" }}>· {DEPT_ICONS[user.department]} {user.department}</span>
+                                    )}
+                                </div>
+                            </div>
+                            {level > 0 && (
+                                <div style={{ position: "relative" }}>
+                                    {quickAssign[user.id] ? (
+                                        <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                                            <select
+                                                style={{ fontSize: 11, padding: "3px 6px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg-card)", color: "var(--text-primary)", maxWidth: 140 }}
+                                                defaultValue={user.team_lead_id || ""}
+                                                onChange={e => handleQuickAssign(user.id, e.target.value)}
+                                            >
+                                                <option value="">— Unassign —</option>
+                                                {(level === 1 ? managers : [...managers, ...teamLeads]).filter(u => u.id !== user.id).map(u => (
+                                                    <option key={u.id} value={u.id}>{u.full_name} ({u.role})</option>
+                                                ))}
+                                            </select>
+                                            <button onClick={() => setQuickAssign(p => ({ ...p, [user.id]: false }))} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, color: "var(--text-muted)" }}>✕</button>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={() => setQuickAssign(p => ({ ...p, [user.id]: true }))}
+                                            style={{ fontSize: 10, padding: "2px 8px", border: "1px solid var(--border)", borderRadius: 6, background: "var(--bg-card2, #f8f9fa)", cursor: "pointer", color: "var(--text-muted)", whiteSpace: "nowrap" }}
+                                        >✏️ Reassign</button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+
+                const TreeBranch = ({ children, isLast }) => (
+                    <div style={{ paddingLeft: 20, marginTop: 8, position: "relative" }}>
+                        <div style={{
+                            position: "absolute", left: 0, top: 0, bottom: isLast ? "50%" : 0,
+                            width: 1, background: "var(--border, #e2e8f0)",
+                        }} />
+                        <div style={{
+                            position: "absolute", left: 0, top: "50%",
+                            width: 16, height: 1, background: "var(--border, #e2e8f0)",
+                        }} />
+                        {children}
+                    </div>
+                );
+
                 return (
                     <div className="admin-section">
-                        <h3>🗂️ Team Structure Map</h3>
-                        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 16 }}>Shows which Executives report to which Team Lead. Use "Edit" on a user to assign their Team Lead.</p>
-                        <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-                            {teamLeads.map(tl => {
-                                const myExecs = executives.filter(e => e.team_lead_id === tl.id);
-                                const dept = tl.department || "School";
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                            <h3 style={{ margin: 0 }}>🌳 Reporting Tree</h3>
+                            <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                                Hover any user → click <strong>✏️ Reassign</strong> to change reporting line
+                            </span>
+                        </div>
+                        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>
+                            3-level hierarchy: <strong>Manager → Team Lead → Executive</strong> · Grouped by Department
+                        </p>
+
+                        {/* Department columns */}
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 20 }}>
+                            {DEPTS.map(dept => {
+                                const deptColor = DEPT_COLORS[dept];
+                                const deptManagers = managers.filter(m => (m.department || "School") === dept);
+                                const deptTeamLeads = teamLeads.filter(tl => (tl.department || "School") === dept);
+                                const deptExecs = executives.filter(e => (e.department || "School") === dept);
+
+                                // Build tree: for each manager, find their TLs, for each TL find their execs
+                                const assignedExecIds = new Set();
+                                const assignedTLIds = new Set();
+
                                 return (
-                                    <div key={tl.id} style={{ background: "var(--bg-card)", border: `2px solid ${DEPT_COLORS[dept]}40`, borderTop: `3px solid ${DEPT_COLORS[dept]}`, borderRadius: 12, padding: "16px 20px", minWidth: 220, flex: "1 1 220px" }}>
-                                        <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>{tl.full_name}</div>
-                                        <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 10 }}>{tl.role} · <span className={`dept-badge dept-${dept.toLowerCase()}`}>{dept}</span></div>
-                                        {myExecs.length === 0 ? (
-                                            <div style={{ fontSize: 12, color: "var(--text-faint)", fontStyle: "italic" }}>No executives assigned</div>
-                                        ) : myExecs.map(e => (
-                                            <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0", borderBottom: "1px solid var(--border)", fontSize: 13 }}>
-                                                <span>👤</span>
-                                                <span style={{ flex: 1 }}>{e.full_name}</span>
-                                                <span className={`dept-badge dept-${(e.department || "School").toLowerCase()}`}>{e.department || "School"}</span>
+                                    <div key={dept} style={{
+                                        background: DEPT_LIGHT[dept] || "var(--bg-card)",
+                                        border: `2px solid ${deptColor}30`,
+                                        borderTop: `4px solid ${deptColor}`,
+                                        borderRadius: 14, padding: 16,
+                                    }}>
+                                        {/* Dept Header */}
+                                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+                                            <span style={{ fontSize: 22 }}>{DEPT_ICONS[dept]}</span>
+                                            <div>
+                                                <div style={{ fontWeight: 800, fontSize: 15, color: deptColor }}>{dept}</div>
+                                                <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                                                    {deptManagers.length} manager · {deptTeamLeads.length} team lead · {deptExecs.length} executive
+                                                </div>
                                             </div>
-                                        ))}
+                                        </div>
+
+                                        {/* If no one in this dept */}
+                                        {deptManagers.length === 0 && deptTeamLeads.length === 0 && deptExecs.length === 0 && (
+                                            <div style={{ fontSize: 12, color: "var(--text-faint)", fontStyle: "italic", textAlign: "center", padding: "20px 0" }}>
+                                                No users in {dept} department yet
+                                            </div>
+                                        )}
+
+                                        {/* Manager → TL → Exec tree */}
+                                        {deptManagers.map((mgr, mi) => {
+                                            const mgrTLs = deptTeamLeads.filter(tl => tl.team_lead_id === mgr.id);
+                                            mgrTLs.forEach(tl => assignedTLIds.add(tl.id));
+                                            return (
+                                                <div key={mgr.id} style={{ marginBottom: 12 }}>
+                                                    <NodeCard user={mgr} level={0} accentColor={deptColor} />
+                                                    {/* Team Leads under this manager */}
+                                                    {mgrTLs.map((tl, ti) => {
+                                                        const tlExecs = deptExecs.filter(e => e.team_lead_id === tl.id);
+                                                        tlExecs.forEach(e => assignedExecIds.add(e.id));
+                                                        return (
+                                                            <TreeBranch key={tl.id} isLast={ti === mgrTLs.length - 1}>
+                                                                <NodeCard user={tl} level={1} accentColor={deptColor} />
+                                                                {tlExecs.map((exec, ei) => {
+                                                                    assignedExecIds.add(exec.id);
+                                                                    return (
+                                                                        <TreeBranch key={exec.id} isLast={ei === tlExecs.length - 1}>
+                                                                            <NodeCard user={exec} level={2} accentColor={deptColor} />
+                                                                        </TreeBranch>
+                                                                    );
+                                                                })}
+                                                                {tlExecs.length === 0 && (
+                                                                    <div style={{ paddingLeft: 20, marginTop: 6, fontSize: 11, color: "var(--text-faint)", fontStyle: "italic" }}>
+                                                                        No executives assigned
+                                                                    </div>
+                                                                )}
+                                                            </TreeBranch>
+                                                        );
+                                                    })}
+                                                    {/* Execs directly under manager (no TL) */}
+                                                    {deptExecs.filter(e => e.team_lead_id === mgr.id).map((exec, ei) => {
+                                                        assignedExecIds.add(exec.id);
+                                                        return (
+                                                            <TreeBranch key={exec.id} isLast={ei === deptExecs.filter(e => e.team_lead_id === mgr.id).length - 1}>
+                                                                <NodeCard user={exec} level={2} accentColor={deptColor} />
+                                                            </TreeBranch>
+                                                        );
+                                                    })}
+                                                </div>
+                                            );
+                                        })}
+
+                                        {/* Unassigned TLs in this dept */}
+                                        {deptTeamLeads.filter(tl => !assignedTLIds.has(tl.id)).length > 0 && (
+                                            <div style={{ marginTop: 12, borderTop: `1px dashed ${deptColor}40`, paddingTop: 10 }}>
+                                                <div style={{ fontSize: 11, fontWeight: 600, color: deptColor, marginBottom: 6 }}>📋 Unassigned Team Leads</div>
+                                                {deptTeamLeads.filter(tl => !assignedTLIds.has(tl.id)).map(tl => (
+                                                    <div key={tl.id} style={{ marginBottom: 6 }}>
+                                                        <NodeCard user={tl} level={1} accentColor={deptColor} />
+                                                        {/* Their execs if any */}
+                                                        {deptExecs.filter(e => e.team_lead_id === tl.id).map((exec, ei) => {
+                                                            assignedExecIds.add(exec.id);
+                                                            return (
+                                                                <TreeBranch key={exec.id} isLast>
+                                                                    <NodeCard user={exec} level={2} accentColor={deptColor} />
+                                                                </TreeBranch>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {/* Unassigned Executives */}
+                                        {deptExecs.filter(e => !assignedExecIds.has(e.id)).length > 0 && (
+                                            <div style={{ marginTop: 12, borderTop: `1px dashed ${deptColor}40`, paddingTop: 10 }}>
+                                                <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", marginBottom: 6 }}>👤 Unassigned Executives</div>
+                                                {deptExecs.filter(e => !assignedExecIds.has(e.id)).map(exec => (
+                                                    <div key={exec.id} style={{ marginBottom: 6 }}>
+                                                        <NodeCard user={exec} level={2} accentColor={deptColor} />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 );
                             })}
-                            {teamLeads.length === 0 && <p className="empty-message">No Team Leads found. Assign TeamLead role to users first.</p>}
                         </div>
-                        <div style={{ marginTop: 20 }}>
-                            <h4 style={{ fontSize: 14, marginBottom: 8 }}>Unassigned Executives</h4>
-                            {executives.filter(e => !e.team_lead_id).length === 0 ? (
-                                <p style={{ fontSize: 13, color: "var(--text-faint)" }}>✅ All executives are assigned</p>
-                            ) : (
-                                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                                    {executives.filter(e => !e.team_lead_id).map(e => (
-                                        <div key={e.id} style={{ background: "var(--bg-card2)", border: "1px solid var(--border)", borderRadius: 8, padding: "6px 12px", fontSize: 13 }}>
-                                            👤 {e.full_name} <span className={`dept-badge dept-${(e.department || "School").toLowerCase()}`}>{e.department || "School"}</span>
-                                        </div>
-                                    ))}
+
+                        {/* Summary bar */}
+                        <div style={{ marginTop: 20, padding: "12px 16px", background: "var(--bg-card)", borderRadius: 10, border: "1px solid var(--border)", display: "flex", gap: 24, flexWrap: "wrap" }}>
+                            {[
+                                { label: "Total Users", val: users.length, icon: "👥" },
+                                { label: "Managers", val: managers.length, icon: "👑" },
+                                { label: "Team Leads", val: teamLeads.length, icon: "🧑‍💼" },
+                                { label: "Executives", val: executives.length, icon: "👤" },
+                                { label: "Assigned", val: executives.filter(e => e.team_lead_id).length, icon: "✅" },
+                                { label: "Unassigned", val: executives.filter(e => !e.team_lead_id).length, icon: "⚠️" },
+                            ].map(s => (
+                                <div key={s.label} style={{ textAlign: "center" }}>
+                                    <div style={{ fontSize: 20 }}>{s.icon}</div>
+                                    <div style={{ fontWeight: 700, fontSize: 18 }}>{s.val}</div>
+                                    <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{s.label}</div>
                                 </div>
-                            )}
+                            ))}
                         </div>
                     </div>
                 );
