@@ -43,6 +43,8 @@ const listUsers = async (req, res) => {
                 full_name: profile.full_name || u.user_metadata?.full_name || u.email?.split("@")[0] || "Unknown",
                 role: profile.role || u.user_metadata?.role || "Executive",
                 team: profile.team || u.user_metadata?.team || null,
+                department: profile.department || u.user_metadata?.department || "School",
+                team_lead_id: profile.team_lead_id || null,
                 is_active: profile.is_active !== false,
                 feature_flags: profile.feature_flags || {},
                 created_at: u.created_at,
@@ -205,8 +207,29 @@ const getValidationRules = async (req, res) => {
     }
 };
 
+// DELETE /api/admin/users/:id  — permanently delete user from auth + profiles
+const deleteUser = async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (id === req.user.id) return res.status(400).json({ message: "Cannot delete yourself" });
+
+        // 1. Delete profile row first
+        await supabase.from("profiles").delete().eq("id", id);
+
+        // 2. Permanently delete from Supabase Auth
+        const { error } = await supabase.auth.admin.deleteUser(id);
+        if (error) throw error;
+
+        logAudit(req.user.id, req.user.email, "USER_DELETE", id, "profiles", null);
+        res.json({ success: true, deleted_id: id });
+    } catch (err) {
+        console.error("deleteUser error:", err);
+        res.status(500).json({ message: "Failed to delete user" });
+    }
+};
+
 module.exports = {
-    requireAdmin, listUsers, updateUser, toggleUserActive,
+    requireAdmin, listUsers, updateUser, toggleUserActive, deleteUser,
     listFeatureRequests, updateFeatureRequest,
     getAuditLog, getValidationRules, updateValidationRule,
 };

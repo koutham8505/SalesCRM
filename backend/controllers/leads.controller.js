@@ -355,11 +355,11 @@ exports.getOwners = async (req, res) => {
         { onConflict: "id" }
       );
     }
-    // Fetch all non-disabled users (null is_active counts as active)
+    // Fetch all non-disabled users (null is_active = active, only exclude explicit false)
     const { data, error } = await supabase
       .from("profiles")
       .select("id, full_name, role, team, department, team_lead_id")
-      .neq("is_active", false)
+      .or("is_active.eq.true,is_active.is.null")
       .order("full_name");
     if (error) throw error;
     res.json(data || []);

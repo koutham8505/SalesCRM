@@ -4,11 +4,16 @@ import "./auth.css";
 
 const API_URL = `${import.meta.env.VITE_API_URL || "http://localhost:3000"}/api/auth/register`;
 const ROLES = ["Admin", "Manager", "TeamLead", "Executive"];
+const DEPARTMENTS = [
+    { value: "School", label: "🏫 School" },
+    { value: "College", label: "🎓 College" },
+    { value: "Corporate", label: "🏢 Corporate" },
+];
 
 export default function Register({ onSwitchToLogin }) {
     const [form, setForm] = useState({
         full_name: "", email: "", password: "", confirm_password: "",
-        role: "", team: "",
+        role: "", department: "",
     });
     const [showPwd, setShowPwd] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
@@ -35,6 +40,9 @@ export default function Register({ onSwitchToLogin }) {
         if (!form.role) {
             setError("Please select a role"); return;
         }
+        if (!form.department) {
+            setError("Please select a department"); return;
+        }
 
         try {
             setLoading(true);
@@ -46,7 +54,8 @@ export default function Register({ onSwitchToLogin }) {
                     password: form.password,
                     full_name: form.full_name,
                     role: form.role,
-                    team: form.team || undefined,
+                    team: form.department,
+                    department: form.department,
                 }),
             });
             const data = await res.json();
@@ -165,14 +174,13 @@ export default function Register({ onSwitchToLogin }) {
                                 </div>
 
                                 <div className="reg-field">
-                                    <label>Team <span style={{ fontWeight: 400, color: "#94a3b8" }}>(optional)</span></label>
-                                    <input
-                                        type="text"
-                                        name="team"
-                                        value={form.team}
-                                        onChange={handleChange}
-                                        placeholder="e.g. North Sales"
-                                    />
+                                    <label>Department *</label>
+                                    <select name="department" value={form.department} onChange={handleChange} required>
+                                        <option value="">— Select Department —</option>
+                                        {DEPARTMENTS.map((d) => (
+                                            <option key={d.value} value={d.value}>{d.label}</option>
+                                        ))}
+                                    </select>
                                 </div>
                             </div>
 

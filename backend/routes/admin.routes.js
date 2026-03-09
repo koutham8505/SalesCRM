@@ -3,7 +3,7 @@ const express = require("express");
 const router = express.Router();
 const auth = require("../middleware/auth");
 const {
-    requireAdmin, listUsers, updateUser, toggleUserActive,
+    requireAdmin, listUsers, updateUser, toggleUserActive, deleteUser,
     listFeatureRequests, updateFeatureRequest,
     getAuditLog, getValidationRules, updateValidationRule,
 } = require("../controllers/admin.controller");
@@ -14,6 +14,7 @@ router.use(requireAdmin);
 router.get("/users", listUsers);
 router.put("/users/:id", updateUser);
 router.put("/users/:id/toggle-active", toggleUserActive);
+router.delete("/users/:id", deleteUser);
 router.get("/feature-requests", listFeatureRequests);
 router.put("/feature-requests/:id", updateFeatureRequest);
 router.get("/audit-log", getAuditLog);
