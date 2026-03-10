@@ -170,8 +170,10 @@ export default function App({ session, onLogout }) {
     try {
       setSaving(true);
       const r = await fetch(`${API_URL}/import`, { method: "POST", headers: auth, body: JSON.stringify(rows) });
-      if (!r.ok) throw new Error((await r.json()).message); const d = await r.json();
-      notify(d.message || `Imported ${rows.length} leads`); fetchLeads();
+      const d = await r.json(); // read body ONCE
+      if (!r.ok) throw new Error(d.message || "Import failed");
+      notify(d.message || `Imported ${rows.length} leads`);
+      fetchLeads();
     } catch (err) { notify(err.message, "error"); }
     finally { setSaving(false); }
   };

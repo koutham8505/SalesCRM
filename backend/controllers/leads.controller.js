@@ -299,7 +299,10 @@ exports.importLeads = async (req, res) => {
   try {
     if (!hasFeature(req.user, "import")) return res.status(403).json({ message: "Not allowed to import" });
     const user = req.user;
-    const cleaned = (req.body || []).map((l) => {
+    const rawRows = req.body || [];
+    if (!rawRows.length) return res.status(400).json({ message: "No data to import" });
+
+    const cleaned = rawRows.map((l) => {
       const base = cleanForDb(l);
       const payload = {
         ...base,
@@ -311,13 +314,18 @@ exports.importLeads = async (req, res) => {
       payload.score = computeScore(payload);
       return payload;
     });
-    if (!cleaned.length) return res.status(400).json({ message: "No data to import" });
+
+    console.log("[importLeads] inserting", cleaned.length, "rows, sample keys:", Object.keys(cleaned[0] || {}));
     const { error } = await supabase.from("my_leads").insert(cleaned);
-    if (error) throw error;
+    if (error) {
+      console.error("[importLeads] Supabase error:", error);
+      return res.status(500).json({ message: `Import failed: ${error.message || error.code || "Unknown DB error"}` });
+    }
     logAudit(user.id, user.email, "LEAD_IMPORT", null, "my_leads", { count: cleaned.length });
     res.status(201).json({ message: `Imported ${cleaned.length} leads` });
   } catch (err) {
-    res.status(500).json({ message: "Import failed" });
+    console.error("[importLeads] catch:", err);
+    res.status(500).json({ message: `Import failed: ${err.message}` });
   }
 };
 
